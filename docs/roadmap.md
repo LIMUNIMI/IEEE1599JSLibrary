@@ -4,6 +4,10 @@ This is the approved execution sequence. Confirmed decisions and unresolved
 questions are in the [brief](modernization.md) and [decision log](architecture.md).
 Milestones may proceed only where their contracts are already confirmed.
 
+The requirements milestone is complete. An initial subset of milestones 3-5
+and 8 is implemented; media feasibility, remaining contracts, streaming,
+WebCodecs video, mixed-media synchronization and the release gate remain open.
+
 1. **Preserve requirements:** establish the agent entry point, brief,
    architecture/decision log and roadmap.
 2. **Media/browser feasibility:** build small native buffered audio,

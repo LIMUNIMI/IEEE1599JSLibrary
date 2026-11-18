@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IEEE 1599 example</title>
+  <style>
+    body { font: 1rem system-ui, sans-serif; max-width: 48rem; margin: 2rem auto; padding: 0 1rem; }
+    #controls { display: flex; margin: 1rem 0; }
+    [role="alert"] { color: #a00000; }
+  </style>
+</head>
+<body>
+  <h1>IEEE 1599 example</h1>
+  <p>This synthetic score and recording demonstrate buffered audio and score-event seeking.</p>
+  <button id="initialize">Initialize audio</button>
+  <p id="message" role="alert"></p>
+  <div id="controls"></div>
+  <div id="score"></div>
+  <script type="module" src="main.js"></script>
+</body>
+</html>

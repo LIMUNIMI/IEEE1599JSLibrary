@@ -49,8 +49,9 @@ frameworks and prototype mutation.
 
 ## Open decisions and evidence gates
 
-These are not settled by roadmap approval. Ask before implementing affected
-contracts and record decisions in [architecture](architecture.md).
+These were open at roadmap approval. Some have since been resolved; consult
+the current [decision log](architecture.md) before implementing affected
+contracts and ask about any remaining open choices.
 
 1. Demuxer and packaging after format, seeking, streaming, license and worker probes.
 2. Exact codec profiles, browser/device minimums and required vs conditional support.
