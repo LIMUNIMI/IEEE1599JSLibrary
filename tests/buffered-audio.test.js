@@ -13,6 +13,12 @@ class FakeContext extends EventTarget {
   createGain() {
     return { gain: { value: 1 }, connect() {}, disconnect() {} };
   }
+  createStereoPanner() {
+    return {
+      pan: { value: 0 }, connect() {},
+      disconnect() { this.disconnected = true; }
+    };
+  }
   createBufferSource() {
     const source = {
       playbackRate: { value: 1 }, onended: null,
@@ -54,6 +60,42 @@ test('schedules independent instances on one clock, with seek, gain and rate', a
   assert.equal(context.state, 'running');
   await player.dispose();
   assert.equal(context.state, 'running');
+});
+
+test('panning one instance leaves peers and group scheduling alone and survives seek', async () => {
+  const context = new FakeContext();
+  const player = createBufferedAudioPlayer({ context, diagnostics: { console: false } });
+  const buffer = { duration: 10, numberOfChannels: 1 };
+  player.addAudio(buffer, { id: 'one', pan: -1 });
+  player.addAudio(buffer, { id: 'two' });
+  await player.play();
+  const [{ panner: first }, { panner: second }] = player.active;
+  assert.equal(first.pan.value, -1);
+  assert.equal(second.pan.value, 0);
+  player.setPan('one', 0.75);
+  assert.equal(first.pan.value, 0.75);
+  assert.equal(second.pan.value, 0);
+  assert.equal(context.sources.length, 2);
+  assert.throws(() => player.setPan('one', NaN), RangeError);
+  assert.throws(() => player.setPan('missing', 0), /Unknown audio instance/);
+  player.seek(2);
+  assert.equal(first.disconnected, true);
+  assert.equal(second.disconnected, true);
+  assert.equal(player.active[0].panner.pan.value, 0.75);
+  await player.dispose();
+});
+
+test('nonzero pan is rejected for multichannel sources without changing their default routing', async () => {
+  const context = new FakeContext();
+  const player = createBufferedAudioPlayer({ context, diagnostics: { console: false } });
+  const buffer = { duration: 10, numberOfChannels: 4 };
+  assert.throws(() => player.addAudio(buffer, { id: 'surround', pan: 0.5 }), /requires mono or stereo/);
+  assert.throws(() => player.addAudio({ ...buffer, numberOfChannels: 2 }, { id: 'stereo', pan: -1.01 }), RangeError);
+  player.addAudio(buffer, { id: 'surround' });
+  assert.throws(() => player.setPan('surround', -1), /requires mono or stereo/);
+  await player.play();
+  assert.equal(player.active[0].panner, undefined);
+  await player.dispose();
 });
 
 test('ends after the last required instance and stops optional peers', async () => {

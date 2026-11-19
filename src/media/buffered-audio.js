@@ -2,9 +2,15 @@ import { createLogger } from '../diagnostics/logger.js';
 
 /**
  * @typedef {'paused' | 'playing' | 'buffering' | 'ended' | 'error' | 'disposed'} PlayerState
- * @typedef {{id: string, buffer: AudioBuffer, offset: number, gain: number, required: boolean}} AudioInstance
- * @typedef {{id: string, source: AudioBufferSourceNode, gain: GainNode}} ActiveSource
+ * @typedef {{id: string, buffer: AudioBuffer, offset: number, gain: number, pan: number, required: boolean}} AudioInstance
+ * @typedef {{id: string, source: AudioBufferSourceNode, gain: GainNode, panner?: StereoPannerNode}} ActiveSource
  */
+
+/** @param {AudioBuffer} buffer @param {number} pan */
+function validatePan(buffer, pan) {
+  if (!Number.isFinite(pan) || pan < -1 || pan > 1) throw new RangeError('Pan must be between -1 and 1');
+  if (pan !== 0 && buffer.numberOfChannels > 2) throw new RangeError('Stereo panning requires mono or stereo audio');
+}
 
 export class BufferedAudioPlayer extends EventTarget {
   /** @param {{context?: AudioContext, diagnostics?: {capacity?: number, verbose?: boolean, console?: boolean}}} [options] */
@@ -78,17 +84,18 @@ export class BufferedAudioPlayer extends EventTarget {
 
   /**
    * @param {AudioBuffer} buffer
-   * @param {{id: string, offset?: number, gain?: number, required?: boolean}} options
+   * @param {{id: string, offset?: number, gain?: number, pan?: number, required?: boolean}} options
    */
   addAudio(buffer, options) {
     this.assertUsable();
     if (this._state !== 'paused') throw new Error('Add audio while paused');
-    const { id, offset = 0, gain = 1, required = true } = options;
+    const { id, offset = 0, gain = 1, pan = 0, required = true } = options;
     if (!id || this.instances.some((instance) => instance.id === id)) throw new Error('Invalid or duplicate instance id');
     if (!Number.isFinite(buffer.duration) || buffer.duration <= 0) throw new Error('Invalid audio buffer');
     if (!Number.isFinite(offset) || offset < 0) throw new Error('Invalid audio offset');
     if (!Number.isFinite(gain) || gain < 0) throw new Error('Invalid audio gain');
-    this.instances.push({ id, buffer, offset, gain, required });
+    validatePan(buffer, pan);
+    this.instances.push({ id, buffer, offset, gain, pan, required });
   }
 
   /** @param {string} id @param {number} gain */
@@ -103,13 +110,26 @@ export class BufferedAudioPlayer extends EventTarget {
     }
   }
 
+  /** @param {string} id @param {number} pan */
+  setPan(id, pan) {
+    this.assertUsable();
+    const instance = this.instances.find((item) => item.id === id);
+    if (!instance) throw new Error(`Unknown audio instance: ${id}`);
+    validatePan(instance.buffer, pan);
+    instance.pan = pan;
+    for (const active of this.active) {
+      if (active.id === id && active.panner) active.panner.pan.value = pan;
+    }
+  }
+
   stopSources() {
     this.generation++;
-    for (const { source, gain } of this.active) {
+    for (const { source, gain, panner } of this.active) {
       source.onended = null;
       source.stop();
       source.disconnect();
       gain.disconnect();
+      panner?.disconnect();
     }
     this.active = [];
   }
@@ -132,6 +152,8 @@ export class BufferedAudioPlayer extends EventTarget {
       let source;
       /** @type {GainNode | undefined} */
       let gain;
+      /** @type {StereoPannerNode | undefined} */
+      let panner;
       try {
         source = this.context.createBufferSource();
         gain = this.context.createGain();
@@ -139,7 +161,14 @@ export class BufferedAudioPlayer extends EventTarget {
         source.playbackRate.value = this.rate;
         gain.gain.value = instance.gain;
         source.connect(gain);
-        gain.connect(this.context.destination);
+        if (instance.buffer.numberOfChannels <= 2) {
+          panner = this.context.createStereoPanner();
+          panner.pan.value = instance.pan;
+          gain.connect(panner);
+          panner.connect(this.context.destination);
+        } else {
+          gain.connect(this.context.destination);
+        }
         source.onended = () => {
           if (generation !== this.generation) return;
           if (instance.required && --remaining === 0) {
@@ -151,10 +180,11 @@ export class BufferedAudioPlayer extends EventTarget {
         };
         source.start(now + Math.max(0, instance.offset - this.position) / this.rate,
           Math.max(0, this.position - instance.offset));
-        this.active.push({ id: instance.id, source, gain });
+        this.active.push({ id: instance.id, source, gain, panner });
       } catch (error) {
         source?.disconnect();
         gain?.disconnect();
+        panner?.disconnect();
         this.stopSources();
         this.changeState('error');
         this.diagnostics.log('error', 'audio', 'Could not schedule audio group');

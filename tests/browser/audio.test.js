@@ -77,3 +77,45 @@ test('decodes a synthetic WAV and plays multiple instances with native Web Audio
   assert.equal(result.sharedContextState, 'running');
   await page.close();
 });
+
+test('native stereo panning centers mono, preserves stereo, and renders isolated left/right instances', async () => {
+  const page = await browser.newPage();
+  try {
+    await page.goto(base);
+    const output = await page.evaluate(async () => {
+      const { createBufferedAudioPlayer } = await import('/audio.js');
+      const native = new OfflineAudioContext(2, 1024, 48000);
+      // Offline rendering starts after the player has scheduled the graph.
+      const context = {
+        state: 'running', currentTime: 0, destination: native.destination,
+        addEventListener: native.addEventListener.bind(native),
+        removeEventListener: native.removeEventListener.bind(native),
+        createBufferSource: native.createBufferSource.bind(native),
+        createGain: native.createGain.bind(native),
+        createStereoPanner: native.createStereoPanner.bind(native)
+      };
+      const player = createBufferedAudioPlayer({ context });
+      const mono = native.createBuffer(1, 128, native.sampleRate);
+      mono.getChannelData(0).fill(0.5);
+      const stereo = native.createBuffer(2, 128, native.sampleRate);
+      stereo.getChannelData(0).fill(0.25);
+      stereo.getChannelData(1).fill(-0.5);
+      player.addAudio(mono, { id: 'center' });
+      player.addAudio(stereo, { id: 'stereo', offset: 256 / native.sampleRate });
+      player.addAudio(mono, { id: 'left', offset: 512 / native.sampleRate, pan: -1, gain: 0.5 });
+      player.addAudio(mono, { id: 'right', offset: 512 / native.sampleRate });
+      await player.play();
+      player.setPan('right', 1);
+      const rendered = await native.startRendering();
+      await player.dispose();
+      return [64, 320, 576].map((frame) => [rendered.getChannelData(0)[frame], rendered.getChannelData(1)[frame]]);
+    });
+    const expected = [[Math.SQRT1_2 / 2, Math.SQRT1_2 / 2], [0.25, -0.5], [0.25, 0.5]];
+    for (const [index, pair] of output.entries()) {
+      assert.ok(pair.every((sample, channel) => Math.abs(sample - expected[index][channel]) < 0.00001),
+        `Expected ${expected[index]} but rendered ${pair}`);
+    }
+  } finally {
+    await page.close();
+  }
+});

@@ -29,6 +29,13 @@ calling `play()`, and supply an `offset` where a member starts later on that
 group clock. Do not group alternate performances on the assumption that
 their timestamps align. Use the score-event timeline to switch between them.
 
+Set panning per mono or stereo instance with `addAudio(buffer, { id, pan })`,
+or change it during playback with `player.setPan(id, pan)`.
+The native Web Audio range is `-1` (left) to `1` (right). The default `0`
+centers mono and preserves the left and right channels of stereo. Pan is
+independent of gain and persists through seeks and pause/resume. Sources with
+more than two channels retain their existing routing and reject nonzero pan.
+
 The browser tests use the locally installed Microsoft Edge by default. Set
 `BROWSER_EXECUTABLE_PATH` to an installed Chromium-compatible browser executable
 to run them elsewhere. A successful automated browser test is not a claim of

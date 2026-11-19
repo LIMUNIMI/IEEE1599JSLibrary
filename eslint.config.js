@@ -25,6 +25,7 @@ export default [
         HTMLSelectElement: 'readonly',
         Image: 'readonly',
         location: 'readonly',
+        OfflineAudioContext: 'readonly',
         Option: 'readonly',
         process: 'readonly',
         requestAnimationFrame: 'readonly',
