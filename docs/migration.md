@@ -1,8 +1,11 @@
 # Migration guide (early implementation)
 
 This library introduces a new API. It does not modify DmITE or provide legacy
-compatibility. Streaming audio, video, mixed-media synchronization, track
-crossfades and a complete browser/codec support matrix are not implemented.
+compatibility. Streaming audio, general-purpose video and mixed-media
+transport, track crossfades and a complete browser/codec support matrix are
+not implemented. The [La Catedral example](../examples/la-catedral/README.md)
+shows one application-specific WebCodecs video adapter synchronized with a
+predecoded soundtrack and an IEEE 1599 score.
 
 | Legacy responsibility | Current replacement |
 | --- | --- |
@@ -18,6 +21,13 @@ gesture. An injected AudioContext is never closed or suspended by the player;
 an internally created one is closed on disposal. A media URL must be resolved
 against an explicit base URL when parsing XML directly. The parser does not
 validate the IEEE 1599 DTD and reports unsupported element names.
+
+For one recording, decode it with `player.loadAudio(url)` and add it with
+`player.addAudio(buffer, { id })`. For a synchronized group, decode each
+already-aligned recording, add all of them to the **same** player before
+calling `play()`, and supply an `offset` where a member starts later on that
+group clock. Do not group alternate performances on the assumption that
+their timestamps align. Use the score-event timeline to switch between them.
 
 The browser tests use the locally installed Microsoft Edge by default. Set
 `BROWSER_EXECUTABLE_PATH` to an installed Chromium-compatible browser executable

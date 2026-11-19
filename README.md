@@ -2,8 +2,10 @@
 
 A modernized, reusable JavaScript library for web players using IEEE 1599.
 The early implementation includes subset XML parsing, timeline lookups,
-predecoded Web Audio and optional score/transport UI. Streaming audio,
-WebCodecs video and mixed-media synchronization are not yet implemented.
+predecoded Web Audio and optional score/transport UI. The
+[La Catedral example](examples/la-catedral/README.md) demonstrates WebCodecs
+video with a synchronized Web Audio soundtrack; general-purpose mixed-media
+transport and streaming audio are not yet implemented.
 
 - [Modernization brief and confirmed decisions](docs/modernization.md)
 - [Architecture and decision log](docs/architecture.md)

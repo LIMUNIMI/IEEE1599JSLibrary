@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>La Catedral | IEEE 1599</title>
+  <style>
+    body { font: 1rem system-ui, sans-serif; max-width: 62rem; margin: 2rem auto; padding: 0 1rem; }
+    .controls { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; margin-block: 1rem; }
+    canvas { display: block; max-width: 100%; height: auto; }
+    #score { border: 1px solid #aaa; cursor: pointer; }
+    #video { margin-block: 1rem; background: #222; }
+    [hidden] { display: none !important; }
+    [role="alert"] { color: #a00000; }
+  </style>
+</head>
+<body>
+  <h1>La Catedral</h1>
+  <p>Choose a performance and a score edition. Click a mapped note to seek in that performance.</p>
+  <div class="controls">
+    <label>Performance <select id="performance" disabled></select></label>
+    <label>Score <select id="edition" disabled></select></label>
+    <label id="page-picker" hidden>Page <select id="pages"></select></label>
+  </div>
+  <div class="controls">
+    <button id="play" disabled>Play</button>
+    <button id="pause" disabled>Pause</button>
+    <button id="stop" disabled>Stop</button>
+    <label>Score event <select id="events" disabled></select></label>
+    <output id="time" aria-label="Media time">0.00 s</output>
+  </div>
+  <p id="status" role="status">Loading score data...</p>
+  <p id="error" role="alert"></p>
+  <canvas id="video" aria-label="Performance video" hidden></canvas>
+  <canvas id="score" role="img" aria-label="Score with clickable event highlights. A keyboard alternative is the score event selector."></canvas>
+  <script type="importmap">
+    { "imports": { "mediabunny": "../../node_modules/mediabunny/dist/bundles/mediabunny.mjs" } }
+  </script>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>

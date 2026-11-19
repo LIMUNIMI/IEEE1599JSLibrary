@@ -18,12 +18,19 @@ export default [
         Event: 'readonly',
         EventTarget: 'readonly',
         fetch: 'readonly',
+        HTMLButtonElement: 'readonly',
+        HTMLCanvasElement: 'readonly',
         HTMLElement: 'readonly',
+        HTMLOutputElement: 'readonly',
+        HTMLSelectElement: 'readonly',
+        Image: 'readonly',
         location: 'readonly',
+        Option: 'readonly',
         process: 'readonly',
         requestAnimationFrame: 'readonly',
         setTimeout: 'readonly',
         URL: 'readonly',
+        VideoDecoder: 'readonly',
         window: 'readonly'
       }
     }

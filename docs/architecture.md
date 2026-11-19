@@ -47,6 +47,8 @@ Group pause must not suspend an AudioContext shared by unrelated players.
 | Confirmed | Retain the latest 200 warnings/errors by default and enable their console output; verbose diagnostics are opt-in and retention is configurable per player. |
 | Confirmed | Buffered players expose `diagnostics` with `log`, `snapshot` and `clear`, and accept `diagnostics: { capacity, verbose, console }` options. |
 | Confirmed | Optional UI exposes `createScoreView({ container, page, onSeek })` with `highlight(eventRefs)` and `dispose()`, and `createTransportControls({ container, player })` with `dispose()`. Score clicks report event IDs; applications map them to performance time. |
+| Confirmed (La Catedral example only) | Use local TIFF-to-PNG and AVI-to-H.264 MP4 derivatives with a separate copy of the AVI's original MP3 soundtrack. The example uses Mediabunny to read MP4 through native WebCodecs; this does not select a general-purpose demuxer. Publish code and instructions only, not the supplied files or derivatives. |
+| Confirmed (La Catedral example only) | Stop pauses and rewinds to the selected recording's time zero, including any lead-in before the first score event. |
 | Open | Demuxer and distribution, codec profiles and actual browser support, per-application numeric budgets, streamed PCM resampling and transport, video-only clock and other group readiness/end rules. |
 | Open | Additional public media, model and event contracts. |
 

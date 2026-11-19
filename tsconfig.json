@@ -7,7 +7,8 @@
     "target": "ES2022",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "lib": ["ES2022", "DOM"]
+    "lib": ["ES2022", "ESNext.Disposable", "DOM"],
+    "skipLibCheck": true
   },
-  "include": ["src/**/*.js", "examples/*.js"]
+  "include": ["src/**/*.js", "examples/**/*.js"]
 }
