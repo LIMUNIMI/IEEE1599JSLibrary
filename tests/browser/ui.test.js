@@ -20,8 +20,14 @@ test('example initializes, seeks by score event, and completes playback', async 
   await page.goto(`${base}examples/index.html`);
   await page.getByRole('button', { name: 'Initialize audio' }).click();
   await page.getByRole('button', { name: 'Play' }).waitFor();
+  assert.match(await page.locator('#validation').textContent(), /^Valid against IEEE 1599 DTD 1\.0 \(0 findings\)\. Layers: general, logic, notational, audio\.$/);
+  assert.deepEqual(await page.locator('#events li').allTextContents(), [
+    'first: VTU 0, chord A4 (staff staff, measure 1)',
+    'second: VTU 512, chord E5 (staff staff, measure 1)'
+  ]);
   await page.getByRole('button', { name: 'Seek to score event second' }).click();
   assert.equal(await page.locator('#controls input').inputValue(), '0.5');
+  assert.equal(await page.locator('#now').textContent(), 'second: VTU 512, chord E5 (staff staff, measure 1)');
   await page.getByRole('button', { name: 'Play' }).click();
   await page.locator('#controls [role=status]').getByText('ended').waitFor();
   assert.equal(await page.locator('#message').textContent(), '');

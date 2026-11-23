@@ -73,21 +73,23 @@ const inside = (element, name) => element.ancestors().some((ancestor) => ancesto
  */
 
 /**
- * Parse the player-relevant IEEE 1599 subset. The document is parsed with
- * `parseIEEE1599Document(xml, {strict: false})`, so DTD validity errors do not
- * throw here; the projection enforces only what the player needs. Element names
- * outside the subset are reported once each in `warnings`. XML entity
- * declarations are rejected rather than expanded.
- * @param {string} xml IEEE 1599 XML text.
- * @param {{baseURL?: string}} [options] `baseURL` resolves relative file names.
+ * Derive the player projection from an already parsed document model, so an
+ * application can load once with `loadIEEE1599Document()` (validating it and
+ * keeping the complete data) and still drive the timeline and score view.
+ * Element names outside the player subset are reported once each in
+ * `warnings`.
+ * @param {import('../model/document.js').IEEE1599Document} doc Parsed document.
  * @returns {PlayerDocument}
- * @throws {Error} For malformed XML, a non-`ieee1599` root, entity
- *   declarations, missing/invalid required values, duplicate spine IDs,
- *   references to unknown spine events, invalid rectangles or durations,
+ * @throws {Error} For missing/invalid values the player needs, duplicate spine
+ *   IDs, references to unknown spine events, invalid rectangles or durations,
  *   non-`seconds` track timing and negative track times.
+ *
+ * @example
+ * const doc = await loadIEEE1599Document('score.xml');
+ * const player = createPlayerProjection(doc);
+ * createTimeline(player.spine.map((e) => e.id), player.audioTracks[0].events);
  */
-export function parseIEEE1599(xml, options = {}) {
-  const doc = parseIEEE1599Document(xml, { strict: false, baseURL: options.baseURL });
+export function createPlayerProjection(doc) {
   const root = doc.root;
   const all = root.descendants();
   /** @param {string} path */
@@ -170,6 +172,21 @@ export function parseIEEE1599(xml, options = {}) {
   const warnings = [...new Set(all.map((element) => element.name).filter((name) => !supported.has(name)))]
     .map((name) => `Unsupported XML element: ${name}`);
   return { metadata, spine, logicalEvents, graphicInstances, audioTracks, warnings };
+}
+
+/**
+ * Parse the player-relevant IEEE 1599 subset. Equivalent to
+ * `createPlayerProjection(parseIEEE1599Document(xml, {strict: false, baseURL}))`:
+ * DTD validity errors do not throw here; the projection enforces only what the
+ * player needs. XML entity declarations are rejected rather than expanded.
+ * @param {string} xml IEEE 1599 XML text.
+ * @param {{baseURL?: string}} [options] `baseURL` resolves relative file names.
+ * @returns {PlayerDocument}
+ * @throws {Error} For malformed XML, a non-`ieee1599` root, entity
+ *   declarations, and every error of {@link createPlayerProjection}.
+ */
+export function parseIEEE1599(xml, options = {}) {
+  return createPlayerProjection(parseIEEE1599Document(xml, { strict: false, baseURL: options.baseURL }));
 }
 
 /**

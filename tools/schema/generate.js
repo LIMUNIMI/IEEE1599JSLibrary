@@ -344,7 +344,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   for (const [path, content] of Object.entries(outputs)) {
     const url = new URL(path, root);
     if (check) {
-      const current = await readFile(url, 'utf8').catch(() => null);
+      const current = (await readFile(url, 'utf8').catch(() => null))?.replace(/\r\n/g, '\n') ?? null;
       if (current?.replace(/\r\n/g, '\n') !== content) {
         console.error(`${path} is out of date; run npm run schema:generate`);
         stale = true;

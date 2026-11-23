@@ -21,6 +21,7 @@ export default [
         HTMLButtonElement: 'readonly',
         HTMLCanvasElement: 'readonly',
         HTMLElement: 'readonly',
+        HTMLInputElement: 'readonly',
         HTMLOutputElement: 'readonly',
         HTMLSelectElement: 'readonly',
         Image: 'readonly',

@@ -8,6 +8,11 @@ event, not the current recording timestamp. Stop rewinds to the beginning of
 the selected recording. The video starts about 84 seconds before the first
 mapped note; choose the first score event to skip the lead-in.
 
+The XML is loaded with `loadIEEE1599Document()` in the default strict mode,
+so a DTD-invalid file stops the demo. Its warnings (the IEEE 2008 DOCTYPE
+system identifier) are written to the console, and the page shows the measure
+and pitches of the highlighted events from the LOS.
+
 ## Run locally
 
 The supplied XML, score images, recordings and derivatives are **not included**

@@ -98,6 +98,9 @@ test('real example selects audio/video, seeks from the canvas and follows the sc
     await canvas.click({ position: { x: 570 * (box.width - 2) / 2550, y: 750 * (box.height - 2) / 3300 } });
     await page.waitForFunction(() => document.querySelector('#time').value === '0.71 s');
     assert.match(await canvas.getAttribute('data-highlighted'), new RegExp(firstRef));
+    assert.match(await page.locator('#validation').textContent(), /^Valid IEEE 1599 document: \d+ Spine events, \d+ part\(s\), 1 warning\(s\)\.$/);
+    await page.waitForFunction(() => document.querySelector('#event-info').value !== '');
+    assert.match(await page.locator('#event-info').textContent(), /^measure 1: D5\b/);
     const pixel = await canvas.evaluate((surface) => Array.from(surface.getContext('2d').getImageData(570, 750, 1, 1).data));
     assert.ok(pixel[0] > pixel[2], 'highlight is drawn in the canvas, not just tracked in state');
 

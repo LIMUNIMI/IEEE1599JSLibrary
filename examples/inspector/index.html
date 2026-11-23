@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IEEE 1599 document inspector</title>
+  <style>
+    body { font: 1rem system-ui, sans-serif; max-width: 62rem; margin: 2rem auto; padding: 0 1rem; }
+    table { border-collapse: collapse; font-size: .9rem; }
+    th, td { border: 1px solid #bbb; padding: .2rem .5rem; text-align: left; }
+    td button { font: inherit; }
+    .error { color: #a00000; }
+    .warning { color: #805000; }
+    [role="alert"] { color: #a00000; }
+  </style>
+</head>
+<body>
+  <h1>IEEE 1599 document inspector</h1>
+  <p>Inspect any IEEE 1599 file with the document model: DTD validation, the six layers, the Spine and the LOS, and the
+    layer elements linked to each Spine event. Files are read locally and never uploaded.</p>
+  <p><label>Open an IEEE 1599 file <input id="file" type="file" accept=".xml,application/xml,text/xml"></label>
+    or the bundled <button id="sample">all-layers sample</button>.</p>
+  <p id="error" role="alert"></p>
+  <section aria-labelledby="summary-heading">
+    <h2 id="summary-heading">Summary</h2>
+    <p id="summary"></p>
+    <ul id="issues" aria-label="Validation findings"></ul>
+  </section>
+  <section aria-labelledby="layers-heading">
+    <h2 id="layers-heading">Layers</h2>
+    <table><thead><tr><th>Layer</th><th>Present</th><th>IEEE 1599 elements</th><th>SVG/MIDI elements</th></tr></thead>
+      <tbody id="layers"></tbody></table>
+  </section>
+  <section aria-labelledby="spine-heading">
+    <h2 id="spine-heading">Spine</h2>
+    <table><thead><tr><th>Event</th><th>timing</th><th>hpos</th><th>VTU</th><th>VPX</th><th>Group</th><th>LOS</th></tr></thead>
+      <tbody id="spine"></tbody></table>
+  </section>
+  <section aria-labelledby="links-heading">
+    <h2 id="links-heading">Event links</h2>
+    <p id="links-title">Choose a Spine event to list the elements that reference it in each layer.</p>
+    <ul id="links" aria-label="Elements linked to the selected event"></ul>
+  </section>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>

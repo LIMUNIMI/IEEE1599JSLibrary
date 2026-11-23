@@ -1,4 +1,5 @@
-import { loadIEEE1599 } from '../../src/xml/parse.js';
+import { loadIEEE1599Document } from '../../src/model/document.js';
+import { createPlayerProjection } from '../../src/xml/parse.js';
 import { createTimeline } from '../../src/core/timeline.js';
 import { openPerformance } from './playback.js';
 import { scoreCanvas } from './score.js';
@@ -22,6 +23,8 @@ const status = element('status', HTMLElement);
 const errorOutput = element('error', HTMLElement);
 const time = element('time', HTMLOutputElement);
 const pagePicker = element('page-picker', HTMLElement);
+const validation = element('validation', HTMLElement);
+const eventInfo = element('event-info', HTMLOutputElement);
 
 /** @param {unknown} reason */
 const report = (reason) => { errorOutput.textContent = reason instanceof Error ? reason.message : String(reason); };
@@ -49,8 +52,27 @@ function seekEvent(ref) {
   void active.seek(timeline.resolve(ref).time).catch(report);
 }
 
+/**
+ * Summarize the LOS content attached to Spine events, e.g. `measure 3: B3 G4`.
+ * @param {import('../../src/model/document.js').IEEE1599Document} doc
+ * @param {string[]} refs Spine event IDs.
+ */
+function describeEvents(doc, refs) {
+  return refs.map((ref) => {
+    const symbols = doc.los.forEvent(ref).filter((symbol) => symbol.name === 'chord' || symbol.name === 'rest');
+    const measure = symbols.map((symbol) => doc.los.measureOf(symbol)?.attributes.number).find(Boolean);
+    const pitches = symbols.flatMap((symbol) => symbol.name === 'rest' ? ['rest']
+      : symbol.descendants('pitch').map((pitch) => `${pitch.attributes.step}${pitch.attributes.actual_accidental === 'sharp' ? '#' : pitch.attributes.actual_accidental === 'flat' ? 'b' : ''}${pitch.attributes.octave}`));
+    return `${measure ? `measure ${measure}: ` : ''}${pitches.join(' ') || ref}`;
+  }).join('; ');
+}
+
 async function initialize() {
-  const documentModel = await loadIEEE1599('./local/catedral.xml');
+  const doc = await loadIEEE1599Document('./local/catedral.xml');
+  const warnings = doc.issues.filter((issue) => issue.severity === 'warning');
+  validation.textContent = `Valid IEEE 1599 document: ${doc.spine.length} Spine events, ${doc.los.parts.length} part(s), ${warnings.length} warning(s).`;
+  for (const issue of warnings) console.info('[La Catedral] %s: %s', issue.code, issue.message);
+  const documentModel = createPlayerProjection(doc);
   const groups = documentModel.graphicInstances;
   const tracks = documentModel.audioTracks;
   if (!groups.length || tracks.length !== 3) throw new Error('Unexpected La Catedral fixture layout');
@@ -148,6 +170,7 @@ async function initialize() {
       if (key !== currentRefs) {
         currentRefs = key;
         score.highlight(refs);
+        eventInfo.value = describeEvents(doc, refs);
         const group = groups[Number(edition.value)];
         const pageIndex = group.pages.findIndex((page) => page.events.some((event) => refs.includes(event.eventRef)));
         if (pageIndex >= 0 && String(pageIndex) !== pages.value) {
