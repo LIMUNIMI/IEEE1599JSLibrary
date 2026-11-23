@@ -4,7 +4,12 @@ This is the approved execution sequence. Confirmed decisions and unresolved
 questions are in the [brief](modernization.md) and [decision log](architecture.md).
 Milestones may proceed only where their contracts are already confirmed.
 
-The requirements milestone is complete. An initial subset of milestones 3-5
+The requirements milestone is complete. The complete IEEE 1599 DTD data model
+(all six layers, Spine, LOS, validation, serialization) is implemented under
+milestone 4; see the [data model guide](data-model.md). Operational support
+for Structural/Performance semantics and DmITE features such as page
+navigation and one-note playback remain open (see the
+[DmITE comparison](dmite-comparison.md)). An initial subset of milestones 3-5
 and 8 is implemented; media feasibility, remaining contracts, streaming,
 WebCodecs video, mixed-media synchronization and the release gate remain open.
 
@@ -24,7 +29,8 @@ WebCodecs video, mixed-media synchronization and the release gate remain open.
    checking, normalized model, spine/logical/graphic/audio indexes, timeline
    mappings, explicit errors and async browser XML parsing. Test optional
    layers, malformed input, sparse mappings, simultaneous/zero timestamps and
-   base URLs. Do not claim full DTD validation.
+   base URLs. DTD validity is checked against the vendored DTD by the model,
+not by `DOMParser`; a generated inventory gates coverage in `npm test`.
 5. **Predecoded Web Audio:** implement complete preload/readiness, independent
    instances, shared scheduling, seek, native varispeed, gain and lifecycle.
    Test actual browser decoding, scheduling, activation and command races.

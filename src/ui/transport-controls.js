@@ -1,6 +1,20 @@
+/**
+ * Optional, framework-free play/pause button, position slider and status for
+ * a buffered audio player.
+ * @module ieee1599/ui/transport-controls
+ */
+
 /** @typedef {import('../media/buffered-audio.js').BufferedAudioPlayer} BufferedAudioPlayer */
 
-/** @param {{container: HTMLElement, player: BufferedAudioPlayer}} options */
+/**
+ * Render accessible transport controls bound to `player`. The controls
+ * follow `statechange`/`positionchange` events and never own a clock.
+ * @param {object} options
+ * @param {HTMLElement} options.container Element the controls are appended to.
+ * @param {BufferedAudioPlayer} options.player Player to drive.
+ * @returns {{dispose: () => void}} Handle; `dispose()` removes the DOM and listeners
+ *   without disposing the player.
+ */
 export function createTransportControls({ container, player }) {
   const wrapper = document.createElement('div');
   const button = document.createElement('button');

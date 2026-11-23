@@ -47,6 +47,22 @@ Surface readiness, cancellation, failures and unsupported codecs. Avoid raw XML
 or media dumps in diagnostics, global player state, synchronous XHR, UI
 frameworks and prototype mutation.
 
+## Later user requests
+
+> LaCatedral We are providing now a more complex IEEE1599 file example. This one has multiple scores, multiple audios and videos. As a general rule the most typical use of the player is to visualize one score, and to play one of the timed media. Applications where multiple audios are to be played synchronized are less common, but still important. So there should be a simple way to load individual medias, and an equally simple way to load multiple medias as a "group" so they have to be kept synchronized. Please use this new example to build a test. The application should have play pause stop buttons, it should have a canvas where the graphical materials are rendered (the score), with highlighted notes that can be clicked to resynchronize. It should be possible to select one of the media files (2 audios 1 video). The playback of the chosen media is synchronized with the score. The usual score following mechanics are in place. Upload this example on the repo so others can check it.
+
+> Good. One more feature of the webaudio api that we want to use is the possibility of setting the stereo panning for a source, as this was not possible with html5. The default should be to pan mono sources to the center and keep stereo sources as they are.
+
+> Continuing with the project make sure to create and maintain JSDoc documentation. Compare once again the current library with DmITE (Murivan/DmITE). Ideally the library should handle all 6 IEEE 1599 layers: General Logic Structural Notational Performance Audio. From the Logic layer Spine and LOS are the most important construct with the Spine being what is used to build the "structure" of the document. Our current library should deal with all tags and attributes that are available in the standard's DTD. Follow this logic: Everything that exists in the DTD should exist in the library. Documentation has to be created and be complete and thorough.
+
+> Remember to also revamp the tests and examples.
+
+Standing rules from these requests: every exported contract and substantial
+internal interface has maintained JSDoc checked by `tsc` (`checkJs`); every
+DTD element/attribute exists in the model (enforced by `npm run
+schema:check`); data coverage is documented separately from operational
+support; tests and examples are updated with each slice.
+
 ## Open decisions and evidence gates
 
 These were open at roadmap approval. Some have since been resolved; consult
@@ -76,9 +92,11 @@ are not checked in, so actual codec and device workload claims need independent
 evidence. The reference has a CC0 dedication; preserve this repository's
 GPL-3.0 license and verify external dependency and fixture provenance.
 
-The target is a player-relevant subset, not a full IEEE 1599 DTD validator.
-Structural/performance-layer interpretation, MIDI synthesis and generating
-engraving from logical notation have not been requested.
+The document model covers every element and attribute of the IEEE 1599 DTD
+1.0 and validates against it (see [data model](data-model.md)); the player
+projection remains a subset. Structural/performance-layer interpretation,
+MIDI synthesis and generating engraving from logical notation have not been
+requested.
 
 - [Reference application snapshot](https://github.com/Murivan/DmITE/tree/da00d96b94496a3cf18a34b18f3a7db495a2aa3e)
 - [IEEE 1599 documentation](https://ieee1599.lim.di.unimi.it/) and [DTD](https://www.lim.di.unimi.it/IEEE/ieee1599.dtd)

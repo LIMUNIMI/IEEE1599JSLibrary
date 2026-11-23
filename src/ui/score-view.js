@@ -1,4 +1,27 @@
 /**
+ * Optional, framework-free score page view: an image with clickable
+ * highlight rectangles. Knows no XML or media; applications map event IDs to
+ * performance time.
+ * @module ieee1599/ui/score-view
+ */
+
+/**
+ * Handle returned by {@link createScoreView}.
+ * @typedef {object} ScoreView
+ * @property {(eventRefs: readonly string[]) => void} highlight Highlight exactly
+ *   these event IDs (`[]` clears).
+ * @property {() => void} dispose Remove the view's DOM and listeners.
+ */
+
+/**
+ * Show one score page and report clicks on its event rectangles. Each
+ * rectangle is a button labelled `Seek to score event <id>`, so the view is
+ * keyboard accessible. Coordinates are image pixels and scale with the image.
+ * @returns {ScoreView}
+ * @example
+ * const view = createScoreView({ container, page: player.graphicInstances[0].pages[0],
+ *   onSeek: (ref) => audio.seek(timeline.resolve(ref).time) });
+ * view.highlight(timeline.eventsAt(audio.currentTime));
  * @param {{container: HTMLElement,
  *   page: {url: string, events: readonly {eventRef: string, x1: number, y1: number, x2: number, y2: number}[]},
  *   onSeek: (eventRef: string) => void}} options

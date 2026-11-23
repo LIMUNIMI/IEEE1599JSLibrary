@@ -1,4 +1,31 @@
+/**
+ * Predecoded (buffered) Web Audio playback of one synchronized group.
+ *
+ * Every added instance shares one transport clock derived from
+ * `AudioContext.currentTime`. Use one player per group of aligned recordings;
+ * alternate performances belong in separate players or a reloaded player,
+ * switched by score event through a timeline. No HTML media elements are used.
+ * @module ieee1599/media/buffered-audio
+ */
 import { createLogger } from '../diagnostics/logger.js';
+
+/**
+ * Diagnostics options; see `createLogger()`.
+ * @typedef {{capacity?: number, verbose?: boolean, console?: boolean}} BufferedAudioDiagnosticsOptions
+ */
+
+/**
+ * Options for {@link BufferedAudioPlayer#addAudio}.
+ * @typedef {object} AddAudioOptions
+ * @property {string} id Unique instance ID within the player.
+ * @property {number} [offset=0] Start of the instance on the shared transport, in seconds (`>= 0`).
+ * @property {number} [gain=1] Linear gain (`>= 0`; `0` mutes).
+ * @property {number} [pan=0] Stereo pan from `-1` (left) to `1` (right). `0`
+ *   centers mono and leaves stereo channels unchanged. Nonzero pan requires
+ *   mono or stereo audio.
+ * @property {boolean} [required=true] Required instances define the group
+ *   duration; optional ones are silenced at the group end.
+ */
 
 /**
  * @typedef {'paused' | 'playing' | 'buffering' | 'ended' | 'error' | 'disposed'} PlayerState
@@ -12,8 +39,32 @@ function validatePan(buffer, pan) {
   if (pan !== 0 && buffer.numberOfChannels > 2) throw new RangeError('Stereo panning requires mono or stereo audio');
 }
 
+/**
+ * Buffered audio group player. Create with {@link createBufferedAudioPlayer}.
+ *
+ * Events (`CustomEvent`):
+ * - `statechange` — `detail.state` is the new {@link PlayerState}.
+ * - `positionchange` — `detail.currentTime` after seeks, pauses, rate changes and starts.
+ * - `error` — `detail.error` for loading, decoding or AudioContext start failures.
+ *
+ * States: `paused` → `buffering` (waiting for the AudioContext) →
+ * `playing` → `ended` at the group end; `error` when the context cannot
+ * start; `disposed` is final. An interrupted context pauses the group.
+ *
+ * @example
+ * const player = createBufferedAudioPlayer();
+ * player.addAudio(await player.loadAudio('take.mp3'), { id: 'take' });
+ * player.addEventListener('statechange', (e) => console.log(e.detail.state));
+ * await player.play();
+ */
 export class BufferedAudioPlayer extends EventTarget {
-  /** @param {{context?: AudioContext, diagnostics?: {capacity?: number, verbose?: boolean, console?: boolean}}} [options] */
+  /**
+   * @param {object} [options]
+   * @param {AudioContext} [options.context] Context to share. When omitted the
+   *   player creates one, and closes it on `dispose()`; an injected context is
+   *   never closed or suspended.
+   * @param {BufferedAudioDiagnosticsOptions} [options.diagnostics] Per-player diagnostics.
+   */
   constructor(options = {}) {
     super();
     this.context = options.context ?? new AudioContext();
@@ -34,18 +85,21 @@ export class BufferedAudioPlayer extends EventTarget {
     this.context.addEventListener('statechange', this.contextListener);
   }
 
+  /** Current transport state. @returns {PlayerState} */
   get state() { return this._state; }
+  /** Transport position in seconds, clamped to `duration`. @returns {number} */
   get currentTime() {
     return this._state === 'playing'
       ? Math.min(this.duration, this.position + (this.context.currentTime - this.anchor) * this.rate)
       : this.position;
   }
+  /** End of the last required instance (offset + length) in seconds, `0` when empty. @returns {number} */
   get duration() {
     return Math.max(0, ...this.instances.filter((instance) => instance.required)
       .map((instance) => instance.offset + instance.buffer.duration));
   }
 
-  /** @param {PlayerState} state */
+  /** @internal @param {PlayerState} state @returns {void} */
   changeState(state) {
     if (this._state !== state) {
       this._state = state;
@@ -64,7 +118,15 @@ export class BufferedAudioPlayer extends EventTarget {
     this.dispatchEvent(new CustomEvent('error', { detail: { error } }));
   }
 
-  /** @param {string} url @param {{signal?: AbortSignal}} [options] */
+  /**
+   * Fetch and fully decode an audio file with `decodeAudioData()`. The
+   * buffer is not added; pass it to {@link BufferedAudioPlayer#addAudio}.
+   * @param {string} url Audio URL (WAV, MP3, AAC... as supported by the browser).
+   * @param {{signal?: AbortSignal}} [options] `signal` cancels fetching/decoding.
+   * @returns {Promise<AudioBuffer>}
+   * @throws {Error} `Player is disposed`, `Audio fetch failed: HTTP <status>`,
+   *   abort and decoding errors (also dispatched as `error` events).
+   */
   async loadAudio(url, options = {}) {
     this.assertUsable();
     try {
@@ -83,8 +145,13 @@ export class BufferedAudioPlayer extends EventTarget {
   }
 
   /**
-   * @param {AudioBuffer} buffer
-   * @param {{id: string, offset?: number, gain?: number, pan?: number, required?: boolean}} options
+   * Add a decoded instance to the group. Only allowed while `paused`.
+   * @param {AudioBuffer} buffer Decoded audio.
+   * @param {AddAudioOptions} options
+   * @returns {void}
+   * @throws {Error} `Add audio while paused`, `Invalid or duplicate instance id`,
+   *   `Invalid audio buffer`, `Invalid audio offset`, `Invalid audio gain`.
+   * @throws {RangeError} For an invalid pan or nonzero pan on more than two channels.
    */
   addAudio(buffer, options) {
     this.assertUsable();
@@ -98,7 +165,13 @@ export class BufferedAudioPlayer extends EventTarget {
     this.instances.push({ id, buffer, offset, gain, pan, required });
   }
 
-  /** @param {string} id @param {number} gain */
+  /**
+   * Change an instance's linear gain immediately, also while playing.
+   * @param {string} id Instance ID.
+   * @param {number} gain Nonnegative linear gain; `0` mutes.
+   * @returns {void}
+   * @throws {Error} `Invalid audio gain` or `Unknown audio instance: <id>`.
+   */
   setGain(id, gain) {
     this.assertUsable();
     if (!Number.isFinite(gain) || gain < 0) throw new Error('Invalid audio gain');
@@ -110,7 +183,15 @@ export class BufferedAudioPlayer extends EventTarget {
     }
   }
 
-  /** @param {string} id @param {number} pan */
+  /**
+   * Change an instance's stereo pan immediately, also while playing; it
+   * persists through seeks and pause/resume.
+   * @param {string} id Instance ID.
+   * @param {number} pan `-1` (left) to `1` (right); `0` restores the default.
+   * @returns {void}
+   * @throws {Error} `Unknown audio instance: <id>`.
+   * @throws {RangeError} For an invalid pan or nonzero pan on more than two channels.
+   */
   setPan(id, pan) {
     this.assertUsable();
     const instance = this.instances.find((item) => item.id === id);
@@ -196,6 +277,13 @@ export class BufferedAudioPlayer extends EventTarget {
     this.positionChanged();
   }
 
+  /**
+   * Start or resume the whole group, resuming the AudioContext if needed
+   * (may require a user gesture). Restarts from 0 after the end.
+   * @returns {Promise<void>}
+   * @throws {Error} `Player is disposed`, `At least one required audio instance is needed`,
+   *   `AudioContext did not start` (state becomes `error`).
+   */
   async play() {
     this.assertUsable();
     if (this._state === 'playing') return;
@@ -219,6 +307,7 @@ export class BufferedAudioPlayer extends EventTarget {
     }
   }
 
+  /** Pause the group at the current position. @returns {void} */
   pause() {
     this.assertUsable();
     if (this._state === 'playing') this.position = this.currentTime;
@@ -228,7 +317,13 @@ export class BufferedAudioPlayer extends EventTarget {
     this.positionChanged();
   }
 
-  /** @param {number} seconds */
+  /**
+   * Move the transport. Keeps playing when playing; seeking to or beyond the
+   * end clamps to `duration` and enters `ended`.
+   * @param {number} seconds Transport time in seconds (`>= 0`).
+   * @returns {void}
+   * @throws {Error} `Invalid seek position`.
+   */
   seek(seconds) {
     this.assertUsable();
     if (!Number.isFinite(seconds) || seconds < 0) throw new Error('Invalid seek position');
@@ -248,7 +343,12 @@ export class BufferedAudioPlayer extends EventTarget {
     this.positionChanged();
   }
 
-  /** @param {number} rate */
+  /**
+   * Set the native playback rate for every instance (speed and pitch change together).
+   * @param {number} rate Positive rate; `1` is normal speed.
+   * @returns {void}
+   * @throws {Error} `Invalid playback rate`.
+   */
   setRate(rate) {
     this.assertUsable();
     if (!Number.isFinite(rate) || rate <= 0) throw new Error('Invalid playback rate');
@@ -285,6 +385,10 @@ export class BufferedAudioPlayer extends EventTarget {
     }
   }
 
+  /**
+   * Stop playback, release listeners and close an owned AudioContext. Idempotent.
+   * @returns {Promise<void>}
+   */
   async dispose() {
     if (this._state === 'disposed') return;
     this.recovering = false;
@@ -295,7 +399,12 @@ export class BufferedAudioPlayer extends EventTarget {
   }
 }
 
-/** @param {{context?: AudioContext, diagnostics?: {capacity?: number, verbose?: boolean, console?: boolean}}} [options] */
+/**
+ * Create a buffered audio group player.
+ * @param {{context?: AudioContext, diagnostics?: BufferedAudioDiagnosticsOptions}} [options]
+ *   See the {@link BufferedAudioPlayer} constructor.
+ * @returns {BufferedAudioPlayer}
+ */
 export function createBufferedAudioPlayer(options = {}) {
   return new BufferedAudioPlayer(options);
 }

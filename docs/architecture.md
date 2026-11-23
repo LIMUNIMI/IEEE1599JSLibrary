@@ -17,7 +17,9 @@ public API contracts.
 | Area | Responsibility |
 | --- | --- |
 | `src/core/` | Normalized document, indexes, explicit timelines, transport state and identity; no DOM or decoding. |
-| `src/xml/` | Async fetch, native DOMParser extraction, semantic validation and base-URL resolution; no synchronous requests or DTD downloads. |
+| `src/model/` | Lossless IEEE 1599 document model: nodes, DTD validation, Spine, LOS, ID/reference indexes, serializer. No media or UI. |
+| `src/schema/` | Generated schema inventory and JSDoc typedefs from `schema/ieee1599.dtd` (`tools/schema/`); never edited by hand. |
+| `src/xml/` | Player projection (`createPlayerProjection`, `parseIEEE1599`, `loadIEEE1599`) over the model; no synchronous requests or DTD downloads. |
 | `src/media/` | Capability checks, loading, audio/video backends and shared transport integration; no page-specific controls or fallback media elements. |
 | `src/adapters/` | Optional isolated demux integrations. |
 | `src/ui/` | Optional score views, video sinks and controls; no XML semantics or independent media clocks. |
@@ -50,6 +52,12 @@ Group pause must not suspend an AudioContext shared by unrelated players.
 | Confirmed | Optional UI exposes `createScoreView({ container, page, onSeek })` with `highlight(eventRefs)` and `dispose()`, and `createTransportControls({ container, player })` with `dispose()`. Score clicks report event IDs; applications map them to performance time. |
 | Confirmed (La Catedral example only) | Use local TIFF-to-PNG and AVI-to-H.264 MP4 derivatives with a separate copy of the AVI's original MP3 soundtrack. The example uses Mediabunny to read MP4 through native WebCodecs; this does not select a general-purpose demuxer. Publish code and instructions only, not the supplied files or derivatives. |
 | Confirmed (La Catedral example only) | Stop pauses and rewinds to the selected recording's time zero, including any lead-in before the first score event. |
+| Confirmed | Data model scope: every IEEE 1599 DTD element and attribute has a typed, documented JavaScript representation with traversal and reference access; playback/rendering/synthesis support is tracked separately. |
+| Confirmed | Schema source: vendor the LIM-published DTD 1.0 verbatim (`schema/ieee1599.dtd`, SHA-256 `6d252f51…d04b`); generate the inventory, typedefs and reference with a dependency-free dev tool; `npm run schema:check` is the coverage gate. |
+| Confirmed | Imported SVG 1.1 and MIDIEvents 1.0 vocabularies are recorded but not vendored, typed or validated; their subtrees are kept as opaque generic nodes. |
+| Confirmed | New `parseIEEE1599Document(xml, { strict, baseURL })` / `loadIEEE1599Document(url, { strict, baseURL, signal })` return `IEEE1599Document`; `parseIEEE1599`/`loadIEEE1599` stay unchanged as a projection (`createPlayerProjection`). |
+| Confirmed | Validation is strict by default (DTD validity errors throw `IEEE1599ValidationError` listing all issues); `strict: false` returns the document with `issues`. Warnings never throw. DTDs are never fetched; entity declarations are rejected. |
+| Confirmed | `serializeIEEE1599Document()` writes only source-specified attributes (no defaults added) and preserves comments, processing instructions, CDATA and DOCTYPE; covered by round-trip tests. |
 | Open | Demuxer and distribution, codec profiles and actual browser support, per-application numeric budgets, streamed PCM resampling and transport, video-only clock and other group readiness/end rules. |
 | Open | Additional public media, model and event contracts. |
 

@@ -9,7 +9,10 @@ predecoded soundtrack and an IEEE 1599 score.
 
 | Legacy responsibility | Current replacement |
 | --- | --- |
-| `IEEE1599Document` synchronous XML and global helpers | `loadIEEE1599()` or `parseIEEE1599()` from `src/xml/parse.js`; explicit normalized data and warnings. |
+| `IEEE1599Document` synchronous XML and global helpers | `loadIEEE1599Document()` / `parseIEEE1599Document()` for the complete, DTD-validated [data model](data-model.md) (Spine, LOS, all layers); `createPlayerProjection(doc)` (or the shorthand `loadIEEE1599()` / `parseIEEE1599()`) for the player subset. |
+| `doc.spineIds`, `doc.spineHash` | `doc.spine.events`, `doc.spine.indexOf(id)`; events also carry VTU/VPX positions. |
+| `doc.chords[ev]`, `doc.rests[ev]`, `doc.allHash[ev]` | `doc.los.forEvent(ev)`, then `element('duration')`, `descendants('pitch')`, `doc.los.staffOf()` and `measureOf()`. |
+| `doc.graphicInstances[description]`, `doc.tracks[fileName]` | Projection `graphicInstances` and `audioTracks`, or the `notational` and `audio` layer elements. |
 | `MXPlayer` transport and audio scheduling | `createBufferedAudioPlayer()` from `src/media/buffered-audio.js`; applications load and add decoded instances, then use its transport. |
 | `MXMedia` track timing lookups | `createTimeline()` from `src/core/timeline.js`; mappings use seconds and spine order. |
 | `MXGraphics` score interaction | Optional `createScoreView()` from `src/ui/score-view.js`; applications resolve its event ID to a target performance time. |
@@ -20,7 +23,9 @@ Use native ES modules and serve the repository over HTTP or HTTPS. Open
 gesture. An injected AudioContext is never closed or suspended by the player;
 an internally created one is closed on disposal. A media URL must be resolved
 against an explicit base URL when parsing XML directly. The parser does not
-validate the IEEE 1599 DTD and reports unsupported element names.
+validate the IEEE 1599 DTD and reports unsupported element names; use
+`parseIEEE1599Document()` for DTD validation (strict by default). See the
+[DmITE comparison](dmite-comparison.md) for the full gap list.
 
 For one recording, decode it with `player.loadAudio(url)` and add it with
 `player.addAudio(buffer, { id })`. For a synchronized group, decode each
