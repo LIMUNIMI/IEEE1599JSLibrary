@@ -11,8 +11,9 @@ import { IEEE1599_SCHEMA } from '../schema/ieee1599-schema.js';
 
 /**
  * Vocabulary an element belongs to. `svg` and `midi` subtrees are imported
- * content kept as opaque generic nodes; `unknown` marks elements not declared
- * by the IEEE 1599 DTD nor allowed as imports at their position.
+ * content kept as opaque typed subtrees (see `src/model/imports.js`);
+ * `unknown` marks elements not declared by the IEEE 1599 DTD nor allowed as
+ * imports at their position.
  * @typedef {'ieee1599' | 'svg' | 'midi' | 'unknown'} IEEE1599Vocabulary
  */
 
@@ -222,6 +223,21 @@ export class IEEE1599Element {
    */
   get declaration() {
     return this.vocabulary === 'ieee1599' ? IEEE1599_SCHEMA.elements[this.name] ?? null : null;
+  }
+
+  /**
+   * Root of the imported (SVG or MIDI) subtree containing this element, i.e.
+   * the nearest ancestor-or-self whose parent is an IEEE 1599 element; `null`
+   * for IEEE 1599 and unknown elements. Use
+   * `import('./imports.js').describeImport()` or `doc.imports()` for the
+   * boundary metadata.
+   * @returns {IEEE1599Element | null}
+   */
+  get importRoot() {
+    if (this.vocabulary !== 'svg' && this.vocabulary !== 'midi') return null;
+    let node = /** @type {IEEE1599Element} */ (this);
+    while (node.parent && node.parent.vocabulary === this.vocabulary) node = node.parent;
+    return node;
   }
 
   /**

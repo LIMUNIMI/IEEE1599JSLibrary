@@ -302,7 +302,7 @@ synthesis support; see [capabilities](capabilities.md).
 | --- | --- |
 | Declared IEEE 1599 elements | ${Object.keys(elements).length} |
 | Declared attributes | ${Object.values(elements).reduce((sum, element) => sum + Object.keys(element.attributes).length, 0)} |
-| Imported vocabularies (opaque) | ${imports.map((entry) => `${entry.title} (\`%${entry.entity};\`)`).join(', ')} |
+| Imported vocabularies (opaque typed subtrees, see \`src/model/imports.js\`) | ${imports.map((entry) => `${entry.title} (\`%${entry.entity};\`)`).join(', ')} |
 | Imported names used by IEEE content models | ${Object.entries(importedUses).map(([name, use]) => `\`${name}\` (${use.vocabulary}, in ${use.usedBy.map((item) => `\`${item}\``).join(', ')})`).join('; ')} |
 | Declared but unreachable elements | ${unreachable.length ? unreachable.map((name) => `\`${name}\``).join(', ') : 'none'} |
 

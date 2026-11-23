@@ -8,6 +8,7 @@ import { IEEE1599_SCHEMA } from '../src/schema/ieee1599-schema.js';
 import { ContentMatcher } from '../src/model/content-model.js';
 import { effectiveAttributes, normalizeAttribute, vocabularyOf, XML_NAME, XML_NMTOKEN } from '../src/model/validate.js';
 import { IEEE1599Element } from '../src/model/node.js';
+import { describeImport, IMPORT_ENTRY_POINTS } from '../src/model/imports.js';
 
 const dtd = await readFile(new URL('../schema/ieee1599.dtd', import.meta.url), 'utf8');
 
@@ -126,4 +127,35 @@ test('attribute normalization, defaults, names and vocabulary boundaries', () =>
   const svg = element('svg', slur);
   assert.equal(vocabularyOf('event', svg), 'svg');
   assert.equal(vocabularyOf('bogus', element('general', null)), 'unknown');
+});
+
+test('every imported vocabulary and entry point has a typed boundary record (import coverage gate)', () => {
+  const declared = Object.entries(IEEE1599_SCHEMA.importedNames).flatMap(([entryPoint, use]) => use.usedBy.map((host) => `${entryPoint}@${host}`));
+  const covered = IMPORT_ENTRY_POINTS.flatMap((entry) => entry.hosts.map((host) => `${entry.entryPoint}@${host}`));
+  assert.deepEqual(covered.sort(), declared.sort());
+  assert.deepEqual([...new Set(IMPORT_ENTRY_POINTS.map((entry) => entry.vocabulary))].sort(),
+    IEEE1599_SCHEMA.imports.map((item) => item.vocabulary).sort(), 'every %import; entity is reachable');
+
+  const node = (name, parent) => new IEEE1599Element({
+    name, namespaceURI: null, vocabulary: vocabularyOf(name, parent), rawAttributes: [], attributes: {}, parent
+  });
+  for (const { entryPoint, vocabulary, hosts } of IMPORT_ENTRY_POINTS) {
+    for (const hostName of hosts) {
+      const host = node(hostName, null);
+      const name = entryPoint.startsWith('%') ? 'NoteOn' : entryPoint;
+      const root = node(name, host);
+      const nested = node('child', root);
+      const record = describeImport(root);
+      assert.ok(record, `${entryPoint} in ${hostName}`);
+      const source = IEEE1599_SCHEMA.imports.find((item) => item.vocabulary === vocabulary);
+      assert.deepEqual([record.vocabulary, record.element, record.host, record.entryPoint, record.entity, record.publicId, record.systemId],
+        [vocabulary, root, host, entryPoint, source.entity, source.publicId, source.systemId]);
+      assert.equal(Object.isFrozen(record), true);
+      assert.equal(describeImport(nested), null, 'nested imported elements are not boundaries');
+      assert.equal(nested.importRoot, root);
+      assert.equal(root.declaration, null);
+    }
+  }
+  assert.equal(describeImport(node('slur', null)), null);
+  assert.equal(node('slur', null).importRoot, null);
 });

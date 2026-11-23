@@ -172,6 +172,37 @@ test('defaults are applied without being marked specified; imports stay opaque',
   assert.equal(result.unknownAttribute, null);
 });
 
+test('imported SVG/MIDI subtrees are typed boundaries with traversal and ID access', async () => {
+  const result = await run((lib, source) => {
+    const doc = lib.parseIEEE1599Document(source.replace('<svg xmlns=', '<svg id="curve" xmlns=').replace('<path d=', '<path id="curve" d='));
+    const record = (item) => [item.vocabulary, item.element.name, item.host.name, item.entryPoint, item.entity, item.title, item.publicId, item.expectedNamespace, item.element.namespaceURI];
+    const path = doc.logic.descendants('path')[0];
+    return {
+      valid: doc.valid,
+      all: doc.imports().map(record),
+      svgOnly: doc.imports('svg').length,
+      midiOnly: doc.imports('midi').map((item) => item.host.path),
+      nested: [path.vocabulary, path.importRoot.name, lib.describeImport(path), lib.isImportedElement(path)],
+      ieeeRoot: doc.byId('e1').importRoot,
+      ids: doc.importedById('curve').map((element) => element.name),
+      separateFromIeeeIds: doc.byId('curve'),
+      missing: doc.importedById('nope').length
+    };
+  });
+  assert.equal(result.valid, true);
+  assert.deepEqual(result.all, [
+    ['svg', 'svg', 'slur', 'svg', 'svg', 'SVG 1.1', '-//W3C//DTD SVG 1.1//EN', 'http://www.w3.org/2000/svg', 'http://www.w3.org/2000/svg'],
+    ['midi', 'NoteOn', 'midi_event', '%MIDIChannelMessage;', 'mididtd', 'MIDIEvents 1.0', '-//MIDI Manufacturers Association//DTD MIDIEvents 1.0//EN', null, null]
+  ]);
+  assert.equal(result.svgOnly, 1);
+  assert.deepEqual(result.midiOnly, ['/ieee1599[1]/performance[1]/midi_instance[1]/midi_mapping[1]/midi_event_sequence[1]/midi_event[1]']);
+  assert.deepEqual(result.nested, ['svg', 'svg', null, true]);
+  assert.equal(result.ieeeRoot, null);
+  assert.deepEqual(result.ids, ['svg', 'path']);
+  assert.equal(result.separateFromIeeeIds, null);
+  assert.equal(result.missing, 0);
+});
+
 test('serialization round-trips data, keeps unspecified defaults implicit and is idempotent', async () => {
   const result = await run((lib, source) => {
     const dump = (node) => node.type === 'element'

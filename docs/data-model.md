@@ -49,8 +49,10 @@ Warnings, which never throw, cover these cases:
 - Spine `timing` or `hpos` values that are not integers.
 
 External DTDs are never fetched. Entity declarations are rejected and never
-expanded. SVG and MIDI subtrees are kept but not validated. Issue codes and
-their severities are documented in `src/model/validate.js`.
+expanded. SVG and MIDI subtrees are kept as opaque typed subtrees (see
+[Imported SVG and MIDI content](#imported-svg-and-midi-content)) and are not
+validated. Issue codes and their severities are documented in
+`src/model/validate.js`.
 
 ## Nodes
 
@@ -65,6 +67,7 @@ Every element is an `IEEE1599Element`:
 | `children` | Ordered elements, text, CDATA, comments and processing instructions. Mixed content keeps its order. |
 | `element(name)`, `elements(name)`, `descendants(filter?)`, `ancestors()`, `closest(name)` | Traversal. |
 | `text`, `path`, `declaration`, `layer` | Concatenated text, location such as `/ieee1599[1]/logic[1]/spine[1]/event[2]`, DTD declaration, owning layer. |
+| `importRoot` | For SVG/MIDI elements, the root of their imported subtree; `null` otherwise. |
 
 Generated JSDoc types in `src/schema/ieee1599-types.js`, such as
 `IEEE1599ChordElement`, narrow `name` and `attributes` for every element. For
@@ -86,6 +89,8 @@ example, enumerated attributes become string unions.
 - `referencesTo(id)`, which returns every IDREF or IDREFS use as
   `{ element, attribute }`.
 - `eventLinks(eventId)`, which groups the referring elements by layer.
+- `imports(vocabulary?)` and `importedById(id)` for imported SVG and MIDI
+  content (see below).
 - `resolveURL(path)`, which resolves `file_name` values against `baseURL`.
 
 | Layer | Contents (see the [reference](schema-reference.md#elements-by-layer)) |
@@ -140,6 +145,38 @@ for (const symbol of doc.los.forEvent('e1')) {
 }
 ```
 
+## Imported SVG and MIDI content
+
+The DTD imports SVG 1.1 (`%svg;`) for custom shapes and fonts, and
+MIDIEvents 1.0 (`%mididtd;`) for MIDI messages. As the user decided, the
+library models only the IEEE 1599 declarations and keeps imported content as
+**opaque typed subtrees**:
+
+- Imported nodes are `IEEE1599Element`s with `vocabulary` set to `svg` or
+  `midi` (JSDoc type `IEEE1599ImportedElement`). They keep their order,
+  attributes and text, and support the usual traversal. `declaration` is
+  `null`.
+- `doc.imports(vocabulary?)` returns one frozen `IEEE1599Import` record per
+  subtree root, in document order. Each record holds `vocabulary`, `element`,
+  `host`, `entryPoint`, `entity`, `title`, `publicId`, `systemId` and
+  `expectedNamespace`.
+- `element.importRoot` returns the subtree root, and
+  `describeImport(element)` returns the record for a root.
+- `doc.importedById(id)` returns every imported element with that `id`. These
+  IDs are separate from `byId()` and are not checked for uniqueness.
+- `IMPORT_ENTRY_POINTS` lists each entry point (`svg`, `font`, `SysEx`,
+  `%MIDIChannelMessage;`) with its allowed IEEE hosts.
+
+```js
+for (const { element, host, entryPoint } of doc.imports('svg')) {
+  console.log(host.path, entryPoint, element.attribute('viewBox'));
+}
+doc.imports('midi').map(({ element }) => [element.name, element.attribute('Note')]);
+```
+
+SVG and MIDI element and attribute names are not enumerated or typed per
+element, and these subtrees are not validated. Imported shapes are not
+rendered and MIDI is not synthesized (see [capabilities](capabilities.md)).
 ## Round trip
 
 `serializeIEEE1599Document(doc)` writes this content:

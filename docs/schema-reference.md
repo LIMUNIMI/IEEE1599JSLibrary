@@ -19,7 +19,7 @@ synthesis support; see [capabilities](capabilities.md).
 | --- | --- |
 | Declared IEEE 1599 elements | 200 |
 | Declared attributes | 424 |
-| Imported vocabularies (opaque) | SVG 1.1 (`%svg;`), MIDIEvents 1.0 (`%mididtd;`) |
+| Imported vocabularies (opaque typed subtrees, see `src/model/imports.js`) | SVG 1.1 (`%svg;`), MIDIEvents 1.0 (`%mididtd;`) |
 | Imported names used by IEEE content models | `svg` (svg, in `custom_articulation`, `slur`, `custom_hsymbol`, `layout_shapes`); `font` (svg, in `text_font`, `music_font`); `%MIDIChannelMessage;` (midi, in `midi_event`); `SysEx` (midi, in `sys_ex`) |
 | Declared but unreachable elements | `multiple_endings`, `mpeg4_spine_event` |
 

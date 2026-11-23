@@ -18,7 +18,7 @@ that its parser reads by name.
 | Logic, LOS | `chord` and `rest` by voice (`voice_item_ref`): duration, `tuplet_ratio`, `augmentation_dots`, notehead `pitch` (`step`, `octave`, `actual_accidental`), `printed_accidentals`, `tie` | All 118 Logic elements, plus `LOS` indexes for staves, parts, voice items, symbols by event, and staff, part and measure lookups. Layout is included. |
 | Structural | Not read | All 24 elements. |
 | Notational | `graphic_instance_group`, `graphic_instance` (`file_name`, `position_in_group`, `description`), and the `graphic_event` rectangle with `highlight_color` and `description` | All 8 elements, including notation instances. |
-| Performance | Not read | All 20 elements. MIDI content stays an opaque `midi` subtree. |
+| Performance | Not read | All 20 elements. MIDI content stays a typed opaque `midi` subtree with boundary records (`doc.imports('midi')`). |
 | Audio | `track` (`file_name`, `file_format`, `notes`) and `track_event` (`event_ref`, `start_time`) | All 16 elements, including `track_general`, recordings, performers and `track_region`. |
 | Validation | None | DTD validity, strict by default. |
 | Round trip | Not supported | `serializeIEEE1599Document()`. |

@@ -11,11 +11,13 @@
  * Validation scope: the browser `DOMParser` checks well-formedness only. The
  * DTD constraints are checked by this module against the generated inventory
  * in `src/schema/ieee1599-schema.js`. Imported SVG and MIDI subtrees are kept
- * opaque and not validated. External DTDs are never fetched and entity
+  * as opaque typed subtrees (`doc.imports()`, `doc.importedById()`) and are not
+  * validated. External DTDs are never fetched and entity
  * declarations are rejected.
  * @module ieee1599/model/document
  */
 import { IEEE1599_SCHEMA } from '../schema/ieee1599-schema.js';
+import { describeImport, isImportedElement } from './imports.js';
 import { LOS } from './los.js';
 import { IEEE1599Element } from './node.js';
 import { Spine } from './spine.js';
@@ -62,6 +64,8 @@ import { effectiveAttributes, IEEE1599ValidationError, validateTree, vocabularyO
  */
 export class IEEE1599Document {
   /** @type {Map<string, IEEE1599Reference[]>} */ #references = new Map();
+  /** @type {import('./imports.js').IEEE1599Import[]} */ #imports = [];
+  /** @type {Map<string, import('./imports.js').IEEE1599ImportedElement[]>} */ #importedIds = new Map();
   /** @type {Spine | null} */ #spine = null;
   /** @type {LOS | null} */ #los = null;
 
@@ -96,6 +100,17 @@ export class IEEE1599Document {
     /** Elements by ID-typed attribute value (first occurrence wins). @type {ReadonlyMap<string, import('./node.js').IEEE1599Element>} */
     this.ids = ids;
     for (const element of [root, ...root.descendants()]) {
+      if (isImportedElement(element)) {
+        const boundary = describeImport(element);
+        if (boundary) this.#imports.push(boundary);
+        const id = element.attribute('id');
+        if (id !== null) {
+          const list = this.#importedIds.get(id);
+          if (list) list.push(element);
+          else this.#importedIds.set(id, [element]);
+        }
+        continue;
+      }
       const declaration = element.declaration;
       if (!declaration) continue;
       for (const [name, attribute] of Object.entries(declaration.attributes)) {
@@ -157,6 +172,32 @@ export class IEEE1599Document {
    */
   byId(id) {
     return this.ids.get(id) ?? null;
+  }
+
+  /**
+   * Imported SVG/MIDI subtrees in document order, optionally filtered by
+   * vocabulary. Each record identifies the subtree root, its IEEE host, the
+   * DTD entry point and the imported DTD identifiers.
+   * @param {import('./imports.js').IEEE1599ImportedVocabulary} [vocabulary]
+   * @returns {readonly import('./imports.js').IEEE1599Import[]}
+   *
+   * @example
+   * for (const { element, host } of doc.imports('svg')) console.log(host.path, element.name);
+   */
+  imports(vocabulary) {
+    return vocabulary === undefined ? [...this.#imports] : this.#imports.filter((item) => item.vocabulary === vocabulary);
+  }
+
+  /**
+   * Imported elements whose `id` attribute equals `id`, in document order.
+   * Imported IDs are separate from IEEE 1599 IDs (`byId()`): they are not
+   * validated, so the list may contain several elements, for example the
+   * same SVG `id` in two independent fragments.
+   * @param {string} id Attribute value as written (no normalization).
+   * @returns {readonly import('./imports.js').IEEE1599ImportedElement[]}
+   */
+  importedById(id) {
+    return this.#importedIds.get(id) ?? [];
   }
 
   /**

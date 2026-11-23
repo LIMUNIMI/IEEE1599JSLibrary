@@ -12,6 +12,7 @@
  */
 export { IEEE1599Document, loadIEEE1599Document, parseIEEE1599Document, serializeIEEE1599Document } from './model/document.js';
 export { IEEE1599Element } from './model/node.js';
+export { describeImport, IMPORT_ENTRY_POINTS, isImportedElement } from './model/imports.js';
 export { LOS } from './model/los.js';
 export { Spine } from './model/spine.js';
 export { IEEE1599ValidationError } from './model/validate.js';

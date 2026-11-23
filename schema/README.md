@@ -36,8 +36,27 @@ but they are **not** vendored or expanded:
 | `%svg;` | `-//W3C//DTD SVG 1.1//EN` | `svg` in `custom_articulation`, `slur`, `custom_hsymbol`, `layout_shapes`; `font` in `text_font`, `music_font` |
 | `%mididtd;` | `-//MIDI Manufacturers Association//DTD MIDIEvents 1.0//EN` | `%MIDIChannelMessage;` in `midi_event`; `SysEx` in `sys_ex` |
 
-As the user decided, imported subtrees are kept in full as opaque generic nodes
-with the `svg` or `midi` vocabulary. They are not typed or validated.
+The user chose to model only the IEEE 1599 declarations and to keep imported
+content as **opaque typed subtrees**:
+
+- Every imported subtree is retained in full as `IEEE1599Element` nodes whose
+  `vocabulary` is `svg` or `midi` (JSDoc type `IEEE1599ImportedElement`), with
+  the same ordered children, attributes and traversal methods as IEEE nodes.
+- Each subtree root is described by a frozen `IEEE1599Import` record
+  (`src/model/imports.js`). The record holds the vocabulary, root element,
+  IEEE host element, the entry point admitting it (`svg`, `font`, `SysEx` or
+  `%MIDIChannelMessage;`), the importing entity, the public and system
+  identifiers, and the expected namespace.
+- `doc.imports(vocabulary?)` lists the boundaries in document order,
+  `element.importRoot` climbs to the boundary, and `doc.importedById(id)`
+  finds imported elements by their `id` attribute. These IDs are kept
+  separate from IEEE IDs and are not checked for uniqueness.
+- `IMPORT_ENTRY_POINTS` is derived from the generated schema. A unit test
+  fails unless every entry point and host in the DTD yields a typed record.
+
+The internal element and attribute vocabularies of SVG 1.1 and MIDIEvents
+1.0 are **not** enumerated, typed per element or validated. Typing them would
+require vendoring and expanding those DTDs, which the user declined.
 
 ## Quirks preserved from the DTD
 

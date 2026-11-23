@@ -25,7 +25,7 @@ shows what the library actually **does** with each layer.
 | Logic, LOS | Query symbols, staves, parts, voices and measures per event. | Engraving or rendering notation from the LOS; layout, agogics and symbol semantics beyond lookups. |
 | Structural | Data access only. | Analysis, segmentation playback, Petri-net or MIR execution. |
 | Notational | Raster or SVG score images with `graphic_event` rectangles: highlight, hit testing, page selection. | Notation instances (e.g. MusicXML/NIFF files) and `graphic_event` without rectangles. |
-| Performance | Data access only; MIDI content kept as opaque XML. | MIDI, Csound or MPEG-4 synthesis and playback. |
+| Performance | Data access only; MIDI content kept as typed opaque `midi` subtrees (`doc.imports('midi')`), not validated. | MIDI, Csound or MPEG-4 synthesis and playback. |
 | Audio | `track_event` times in seconds drive timelines; buffered Web Audio playback of decoded tracks. | Non-`seconds` `timing_type` values, `track_region` playback, streaming (see roadmap). |
 
 Validation was measured in Edge 157. `tests/fixtures/all-layers.xml` is valid.
