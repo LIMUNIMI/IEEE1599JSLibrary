@@ -1,42 +1,25 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { createServer } from 'node:http';
-import { readFile } from 'node:fs/promises';
-import { chromium } from 'playwright-core';
+import { startBrowserHarness } from './harness.js';
 
-let server;
+let harness;
 let browser;
 let base;
 
 before(async () => {
-  const moduleSource = await readFile(new URL('../../src/media/buffered-audio.js', import.meta.url), 'utf8');
-  const loggerSource = await readFile(new URL('../../src/diagnostics/logger.js', import.meta.url), 'utf8');
-  server = createServer((request, response) => {
-    if (request.url === '/audio.js') {
-      response.writeHead(200, { 'Content-Type': 'text/javascript' }).end(moduleSource);
-    } else if (request.url === '/diagnostics/logger.js') {
-      response.writeHead(200, { 'Content-Type': 'text/javascript' }).end(loggerSource);
-    } else {
-      response.writeHead(200, { 'Content-Type': 'text/html' }).end('<!doctype html>');
-    }
-  });
-  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
-  base = `http://127.0.0.1:${server.address().port}/`;
-  browser = await chromium.launch(process.env.BROWSER_EXECUTABLE_PATH
-    ? { executablePath: process.env.BROWSER_EXECUTABLE_PATH, headless: true }
-    : { channel: 'msedge', headless: true });
+  harness = await startBrowserHarness();
+  ({ browser, base } = harness);
 });
 
 after(async () => {
-  await browser?.close();
-  await new Promise((resolve, reject) => server?.close((error) => error ? reject(error) : resolve()));
+  await harness?.close();
 });
 
 test('decodes a synthetic WAV and plays multiple instances with native Web Audio', async () => {
   const page = await browser.newPage();
   await page.goto(base);
   const result = await page.evaluate(async () => {
-    const { createBufferedAudioPlayer } = await import('/audio.js');
+    const { createBufferedAudioPlayer } = await import('/src/media/buffered-audio.js');
     const context = new AudioContext();
     const player = createBufferedAudioPlayer({ context });
     const samples = 2400;
@@ -83,7 +66,7 @@ test('native stereo panning centers mono, preserves stereo, and renders isolated
   try {
     await page.goto(base);
     const output = await page.evaluate(async () => {
-      const { createBufferedAudioPlayer } = await import('/audio.js');
+      const { createBufferedAudioPlayer } = await import('/src/media/buffered-audio.js');
       const native = new OfflineAudioContext(2, 1024, 48000);
       // Offline rendering starts after the player has scheduled the graph.
       const context = {
