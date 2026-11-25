@@ -22,8 +22,17 @@
     "typedoc": "^0.28.20",
     "typescript": "^5.9.3"
   },
+  "peerDependencies": {
+    "mediabunny": "^1.66.1"
+  },
+  "peerDependenciesMeta": {
+    "mediabunny": {
+      "optional": true
+    }
+  },
   "exports": {
     ".": "./src/index.js",
+    "./adapters/mediabunny": "./src/adapters/mediabunny.js",
     "./ui/score-view.js": "./src/ui/score-view.js",
     "./ui/transport-controls.js": "./src/ui/transport-controls.js",
     "./schema/ieee1599.dtd": "./schema/ieee1599.dtd"

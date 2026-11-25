@@ -22,6 +22,9 @@ button:not(:disabled) { cursor: pointer; }
 .instrument:has(input:checked) { border-color: #ae161f; box-shadow: inset 0 0 0 1px #ae161f; }
 .instrument select { max-width: 12rem; }
 .picture { display: grid; place-items: center; min-height: 10rem; padding: .4rem; margin-top: .4rem; color: white; background: #302e2d; }
+.video-feed { width: 100%; max-height: 24rem; aspect-ratio: 16 / 9; object-fit: contain; background: #171615; }
+.video-status { max-width: 100%; margin: .25rem; overflow-wrap: anywhere; text-align: center; font-size: .85rem; }
+.video-status[hidden] { display: none; }
 .picture select { color: #242222; }
 .compass { width: min(100%, 8rem); aspect-ratio: 1; border: 1px solid #bcb6b6; border-radius: 50%; position: relative; font-size: .75rem; display: grid; place-items: center; }
 .compass span { position: absolute; }
@@ -36,5 +39,6 @@ button:not(:disabled) { cursor: pointer; }
 @media (max-width: 46rem) {
   .panels { grid-template-columns: 1fr; }
   .picture { grid-auto-flow: column; }
+  .video-feed { max-height: 18rem; }
   .masthead { grid-template-columns: 1fr; gap: .25rem; }
 }

@@ -58,7 +58,12 @@ Group pause must not suspend an AudioContext shared by unrelated players.
 | Confirmed | New `parseIEEE1599Document(xml, { strict, baseURL })` / `loadIEEE1599Document(url, { strict, baseURL, signal })` return `IEEE1599Document`; `parseIEEE1599`/`loadIEEE1599` stay unchanged as a projection (`createPlayerProjection`). |
 | Confirmed | Validation is strict by default (DTD validity errors throw `IEEE1599ValidationError` listing all issues); `strict: false` returns the document with `issues`. Warnings never throw. DTDs are never fetched; entity declarations are rejected. |
 | Confirmed | `serializeIEEE1599Document()` writes only source-specified attributes (no defaults added) and preserves comments, processing instructions, CDATA and DOCTYPE; covered by round-trip tests. |
-| Open | Demuxer and distribution, codec profiles and actual browser support, per-application numeric budgets, streamed PCM resampling and transport, video-only clock and other group readiness/end rules. |
+| Confirmed | No HTML `<audio>`/`<video>` playback or fallback in the library or examples; the shared-clock Web Audio/WebCodecs architecture is retained. |
+| Confirmed | Media access is read-only: no transcoding, remuxing, encoding or derivative generation by the library, because rights to manipulate third-party files cannot be assumed. Any demuxer integration may only read containers and pass packets to native decoders. Formats or codecs without a native browser decoder are reported as unsupported. |
+| Confirmed | The library's Mediabunny integration is isolated in the optional `src/adapters/` subpath for MP4/MOV container reading, packet extraction, metadata and native decodability checks. The core entry point never imports it, and the adapter does not convert, encode, output, play or decode media. |
+| Confirmed | Some formats will not work in some browsers. Media without a native browser decoder or a supported container reader is reported with an explicit unsupported-media error, not converted or emulated (for example AIFF outside Safari, or AVI codecs without WebCodecs support). |
+| Confirmed | Supply Mediabunny as an optional `^1.66.1` peer dependency; plain browser pages may provide it with an import map, and applications may inject the module directly. The package does not bundle it. |
+| Open | Codec profiles and actual browser support, per-application numeric budgets, streamed PCM resampling and transport, video-only clock and other group readiness/end rules. |
 | Open | Additional public media, model and event contracts. |
 
 Do not silently promote proposals to decisions. Seek user approval for

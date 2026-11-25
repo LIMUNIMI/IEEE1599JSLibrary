@@ -1,5 +1,6 @@
 import { createBufferedAudioPlayer, createPlayerProjection, parseIEEE1599Document } from '../../src/index.js';
 import { scoreCanvas } from '../shared/score.js';
+import { createVideoPresenter, openVideo } from '../shared/video.js';
 import { createAssetSource } from './assets.js';
 import { instrumentCatalogue, recordingTimeline } from './model.js';
 
@@ -98,6 +99,11 @@ function mount(source, doc, params, signal) {
   let shown = 0;
   let frame = 0;
   let selected = 1;
+  /** @typedef {{canvas: HTMLCanvasElement, status: HTMLElement, compass: HTMLElement,
+   *   controller?: AbortController, presenter?: ReturnType<typeof createVideoPresenter>,
+   *   timeline?: ReturnType<typeof recordingTimeline>}} VideoFeed */
+  /** @type {VideoFeed[]} */
+  const videoFeeds = [];
   const listeners = { signal };
   const view = scoreCanvas(canvas, seekEvent, 'rgba(228, 21, 28, 0.45)');
   const pageList = () => editions[Number(edition.value)].pages;
@@ -210,6 +216,7 @@ function mount(source, doc, params, signal) {
       enableTransport(true);
       status.textContent = 'Recording ready';
       refresh();
+      renderVideos();
       if (shouldPlay && player.state !== 'ended') await start(active);
     } catch (reason) {
       if (active?.player === player) active = undefined;
@@ -220,6 +227,95 @@ function mount(source, doc, params, signal) {
         const filename = decodeURIComponent(new URL(track.url).pathname.split('/').at(-1) ?? '');
         report(new Error(`${filename}: ${reason instanceof Error ? reason.message : String(reason)}`));
       }
+    }
+  }
+
+  /**
+   * Map the active recording clock from its most recent Spine event to one
+   * instrument's indexed video timeline.
+   * @param {ReturnType<typeof recordingTimeline>} videoTimeline
+   * @param {number} seconds
+   */
+  function videoPosition(videoTimeline, seconds) {
+    if (!active) return 0;
+    const ref = active.timeline.eventsAt(seconds).at(-1);
+    if (!ref) return 0;
+    const audioAnchor = active.timeline.resolve(ref).time;
+    const videoAnchor = videoTimeline.resolve(ref).time;
+    return Math.max(0, videoAnchor + seconds - audioAnchor);
+  }
+
+  /** @param {VideoFeed} feed @param {number} index */
+  async function loadVideo(feed, index) {
+    feed.controller?.abort();
+    feed.presenter?.dispose();
+    feed.presenter = undefined;
+    feed.timeline = undefined;
+    feed.canvas.hidden = true;
+    feed.compass.hidden = false;
+    const instrument = instruments[index];
+    if (!instrument.video) {
+      feed.status.textContent = 'No indexed video for this instrument.';
+      feed.status.hidden = false;
+      return;
+    }
+
+    const controller = new AbortController();
+    feed.controller = controller;
+    feed.status.textContent = 'Opening video…';
+    feed.status.hidden = false;
+    /** @type {Awaited<ReturnType<typeof openVideo>> | undefined} */
+    let picture;
+    try {
+      picture = await source.media(instrument.video.path,
+        (input) => openVideo(input, feed.canvas, controller.signal));
+      if (controller.signal.aborted) {
+        picture.dispose();
+        return;
+      }
+      const timeline = recordingTimeline(spineIds, instrument.video.track);
+      const presenter = createVideoPresenter(picture);
+      feed.timeline = timeline;
+      feed.presenter = presenter;
+      await presenter.seek(videoPosition(timeline, active?.player.currentTime ?? 0));
+      if (controller.signal.aborted) {
+        presenter.dispose();
+        feed.presenter = undefined;
+        feed.timeline = undefined;
+        return;
+      }
+      feed.canvas.hidden = false;
+      feed.compass.hidden = true;
+      feed.status.hidden = true;
+    } catch (reason) {
+      if (feed.presenter) {
+        feed.presenter.dispose();
+        feed.presenter = undefined;
+        feed.timeline = undefined;
+      } else {
+        picture?.dispose();
+      }
+      if (!controller.signal.aborted) {
+        feed.status.textContent = `Video unavailable: ${reason instanceof Error ? reason.message : String(reason)}`;
+        feed.status.hidden = false;
+        feed.canvas.hidden = true;
+        feed.compass.hidden = false;
+      }
+    }
+  }
+
+  function renderVideos() {
+    const seconds = active?.player.currentTime ?? 0;
+    for (const feed of videoFeeds) {
+      if (!feed.presenter || !feed.timeline) continue;
+      void feed.presenter.present(videoPosition(feed.timeline, seconds)).catch((reason) => {
+        feed.presenter?.dispose();
+        feed.presenter = undefined;
+        feed.canvas.hidden = true;
+        feed.compass.hidden = false;
+        feed.status.textContent = `Video unavailable: ${reason instanceof Error ? reason.message : String(reason)}`;
+        feed.status.hidden = false;
+      });
     }
   }
 
@@ -253,6 +349,7 @@ function mount(source, doc, params, signal) {
 
   function update() {
     if (active && (active.player.state === 'playing' || active.player.state !== lastState)) refresh();
+    renderVideos();
     if (!signal.aborted) frame = requestAnimationFrame(update);
   }
 
@@ -264,7 +361,13 @@ function mount(source, doc, params, signal) {
     const legend = fragment.querySelector('legend');
     const radio = fragment.querySelector('input');
     const [instrument, angle] = Array.from(fragment.querySelectorAll('select'));
-    if (!block || !legend || !radio || !instrument || !angle) throw new Error('Missing DmITE panel controls');
+    const videoCanvas = fragment.querySelector('canvas');
+    const videoStatus = fragment.querySelector('.video-status');
+    const compass = fragment.querySelector('.compass');
+    if (!block || !legend || !radio || !instrument || !angle || !(videoCanvas instanceof HTMLCanvasElement)
+      || !(videoStatus instanceof HTMLElement) || !(compass instanceof HTMLElement)) {
+      throw new Error('Missing DmITE panel controls');
+    }
     legend.textContent = label;
     radio.checked = index === selected;
     choices(instrument, indexed(instruments.map((item) => item.label)));
@@ -286,8 +389,12 @@ function mount(source, doc, params, signal) {
     instrument.addEventListener('change', () => { setAngles(); changeAngle(); }, listeners);
     angle.addEventListener('change', changeAngle, listeners);
     radio.addEventListener('change', () => { selected = index; changeAngle(); }, listeners);
+    const feed = { canvas: videoCanvas, status: videoStatus, compass };
+    videoFeeds.push(feed);
+    instrument.addEventListener('change', () => void loadVideo(feed, Number(instrument.value)), listeners);
     panels.append(fragment);
-    return recording;
+    void loadVideo(feed, Number(instrument.value));
+    return { recording };
   });
 
   edition.addEventListener('change', showEdition, listeners);
@@ -324,11 +431,15 @@ function mount(source, doc, params, signal) {
   }, listeners);
   changeRate(100);
   showEdition();
-  void selectRecording(readPanels[selected]());
+  void selectRecording(readPanels[selected].recording());
   update();
 
   return () => {
     pending?.abort();
+    for (const feed of videoFeeds) {
+      feed.controller?.abort();
+      feed.presenter?.dispose();
+    }
     cancelAnimationFrame(frame);
     view.dispose();
     void (async () => {

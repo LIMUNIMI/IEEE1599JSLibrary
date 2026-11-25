@@ -69,14 +69,17 @@ These were open at roadmap approval. Some have since been resolved; consult
 the current [decision log](architecture.md) before implementing affected
 contracts and ask about any remaining open choices.
 
-1. Demuxer and packaging after format, seeking, streaming, license and worker probes.
-2. Exact codec profiles, browser/device minimums and required vs conditional support.
-3. Final public commands/events and states, including AudioContext ownership.
-4. Sparse timeline switching and unmapped-event behavior.
-5. Per-application drift, startup/seek, queue and memory budgets.
-6. Streaming PCM resampling, rate changes and cross-thread transport.
-7. Video-only clock, group readiness and end-of-source rules.
-8. Diagnostic defaults, bounded retention and exact API.
+1. Exact codec profiles, browser/device minimums and required vs conditional support.
+2. Final public commands/events and states, including AudioContext ownership.
+3. Sparse timeline switching and unmapped-event behavior.
+4. Per-application drift, startup/seek, queue and memory budgets.
+5. Streaming PCM resampling, rate changes and cross-thread transport.
+6. Video-only clock, group readiness and end-of-source rules.
+7. Diagnostic defaults, bounded retention and exact API.
+
+The optional MP4/QuickTime demuxer and its distribution model are confirmed
+in the [decision log](architecture.md); measured format and browser support
+remain open.
 
 ## Discovery and references
 

@@ -17,8 +17,9 @@ WebCodecs video, mixed-media synchronization and the release gate remain open.
    architecture/decision log and roadmap.
 2. **Media/browser feasibility:** build small native buffered audio,
    WebCodecs video, streaming audio/AudioWorklet and common-clock probes with
-   synthetic or licensed fixtures. Vet optional demuxers for formats, seeks,
-   ranges, bounded memory, worker support, maintenance and licensing.
+   synthetic or licensed fixtures. Verify the selected Mediabunny adapter for
+   formats, seeks, ranges, bounded memory, worker support, maintenance and
+   licensing.
    Record exact browser, device and codec evidence; Playwright WebKit is not
    proof of Safari/iOS support.
 3. **Resolve contracts and budgets:** ask the user about demuxing, API and

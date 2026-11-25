@@ -7,7 +7,8 @@ import { createTimeline } from '../../src/index.js';
 
 /** @typedef {import('../../src/xml/parse.js').PlayerDocument['audioTracks'][number]} Track */
 /** @typedef {{degrees: number, track: Track}} Angle */
-/** @typedef {{label: string, angles: Angle[]}} Instrument */
+/** @typedef {{path: string, track: Track}} Video */
+/** @typedef {{label: string, angles: Angle[], video?: Video}} Instrument */
 
 /**
  * Match the legacy params.xml angle entries to recordings indexed by IEEE 1599.
@@ -44,7 +45,11 @@ export function instrumentCatalogue(xml, documentURL, tracks) {
       const track = indexed.get(new URL(path, documentURL).href);
       if (track) angles.push({ degrees, track });
     }
-    return { label, angles: angles.sort((a, b) => a.degrees - b.degrees) };
+    const suffix = node.hasAttribute('video_suffix') ? segment(node, 'video_suffix') : '';
+    const videoPath = suffix && `audio_files/${encodeURIComponent(name)}/${encodeURIComponent(`${prefix}${suffix}`)}`;
+    const videoTrack = videoPath ? indexed.get(new URL(videoPath, documentURL).href) : undefined;
+    const video = videoTrack?.format?.startsWith('video_') ? { path: videoPath, track: videoTrack } : undefined;
+    return { label, angles: angles.sort((a, b) => a.degrees - b.degrees), video };
   }).filter((instrument) => instrument.angles.length);
   if (!instruments.length) throw new Error('No recordings in params.xml match the IEEE 1599 track index');
   return instruments;

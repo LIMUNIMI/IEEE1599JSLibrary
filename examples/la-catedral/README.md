@@ -35,7 +35,8 @@ the output directory (`examples/la-catedral/local`) is Git-ignored. Serve the
 demo only to people permitted to access these assets.
 
 The MP4 is downloaded as one file in this example. Mediabunny (MPL-2.0) is an
-example-only dependency that reads the MP4 and decodes with browser WebCodecs;
+example-only dependency whose pinned ESM bundle is loaded from jsDelivr. It
+reads the MP4 and decodes with browser WebCodecs;
 the example retains a canvas image and one look-ahead frame outside the
 adapter's own decoder queue. The soundtrack is fully predecoded in Web
 Audio and supplies the clock. Video starvation detected during presentation

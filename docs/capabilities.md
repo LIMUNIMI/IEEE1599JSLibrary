@@ -10,6 +10,7 @@ only to the stated environment and synthetic fixtures.
 | Same | Score/controls | Browser interaction tests covered scaled hit testing, independent highlights, seeking and example playback. |
 | Windows / Edge via Playwright | DmITE example | Browser tests used synthetic PCM for private folder loading, event-aligned recording switches, One Note and score following. The reference configuration and IEEE 1599 XML resolve to 1,032 indexed angle recordings across 43 instruments; real recordings were not exercised. |
 | Same | La Catedral local derivatives | Browser tests decoded the supplied MP3 recordings through Web Audio and the converted H.264 MP4 through native WebCodecs, verified clock-relative frame presentation and tested canvas following and seek. This is not a measurement of speaker-to-display synchronization. |
+| Same | Mediabunny adapter | Unit tests verify MP4/QuickTime-only input, URL and Blob sources, native decoder capability metadata, encoded packet access, abort/disposal, and parse-error cleanup. Actual browser codec and real-media support remain unverified. |
 | All other browsers/devices | All paths | Unverified. Playwright Chromium/Edge does not establish Safari/iOS or Android support. |
 | All browsers/devices | AAC, streaming audio, WebM video | Unverified or not implemented. No codec support claim. |
 
@@ -28,6 +29,7 @@ shows what the library actually **does** with each layer.
 | Notational | Raster or SVG score images with `graphic_event` rectangles: highlight, hit testing, page selection. | Notation instances (e.g. MusicXML/NIFF files) and `graphic_event` without rectangles. |
 | Performance | Data access only; MIDI content kept as typed opaque `midi` subtrees (`doc.imports('midi')`), not validated. | MIDI, Csound or MPEG-4 synthesis and playback. |
 | Audio | `track_event` times in seconds drive timelines; buffered Web Audio playback of decoded tracks. | Non-`seconds` `timing_type` values, `track_region` playback, streaming (see roadmap). |
+| MP4/QuickTime containers | Optional Mediabunny adapter reports tracks, decoder config and native WebCodecs support, and yields encoded packets for the host's decoder. | General synchronized video transport; codecs not supported by the current browser; AVI, raw H.264 and non-MP4/MOV containers. |
 
 Validation was measured in Edge 157. `tests/fixtures/all-layers.xml` is valid.
 The local La Catedral XML is valid, with one `doctype-system-id` warning. The

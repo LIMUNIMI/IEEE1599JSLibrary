@@ -22,12 +22,11 @@ export function createAssetSource(files) {
   }
 
   /**
-   * @template T
-   * @param {string} path Relative asset path or absolute projected asset URL.
-   * @param {(url: string) => Promise<T>} read Operation that finishes using the URL.
-   * @returns {Promise<T>}
+   * Resolve a path within the selected or served assets directory.
+   * @param {string} path
+   * @returns {{url: URL, file: File | undefined}}
    */
-  async function use(path, read) {
+  function resolve(path) {
     const url = new URL(path, root);
     if (url.origin !== root.origin || !url.pathname.startsWith(root.pathname) || url.search || url.hash) {
       throw new Error('DmITE assets must be inside the selected assets folder');
@@ -35,6 +34,17 @@ export function createAssetSource(files) {
     const key = decodeURIComponent(url.pathname.slice(root.pathname.length));
     const file = local?.get(key);
     if (local && !file) throw new Error(`Missing asset: ${key}`);
+    return { url, file };
+  }
+
+  /**
+   * @template T
+   * @param {string} path Relative asset path or absolute projected asset URL.
+   * @param {(url: string) => Promise<T>} read Operation that finishes using the URL.
+   * @returns {Promise<T>}
+   */
+  async function use(path, read) {
+    const { url, file } = resolve(path);
     if (!file) return read(url.href);
     const objectURL = URL.createObjectURL(file);
     try {
@@ -44,9 +54,22 @@ export function createAssetSource(files) {
     }
   }
 
+  /**
+   * Open long-lived media from its File or URL without creating an object URL.
+   * @template T
+   * @param {string} path
+   * @param {(source: File | string) => Promise<T>} open
+   * @returns {Promise<T>}
+   */
+  function media(path, open) {
+    const { url, file } = resolve(path);
+    return open(file ?? url.href);
+  }
+
   return {
     documentURL: new URL('variationsserieuses.xml', root).href,
     use,
+    media,
     /**
      * Read one DmITE XML file and report HTTP errors with the asset name.
      * @param {string} name

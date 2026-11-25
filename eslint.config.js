@@ -37,5 +37,23 @@ export default [
         window: 'readonly'
       }
     }
+  },
+  {
+    files: ['src/adapters/**/*.js'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        paths: [{ name: 'mediabunny', message: 'Inject the optional module; do not make a static import.' }]
+      }],
+      'no-restricted-properties': ['error',
+        ...['Conversion', 'Output', 'AudioBufferSink', 'AudioSampleSink', 'VideoSampleSink',
+          'CanvasSink', 'AudioBufferSource', 'AudioSampleSource', 'VideoSampleSource',
+          'CanvasSource', 'registerEncoder', 'registerDecoder', 'canEncode', 'canEncodeAudio',
+          'canEncodeVideo'].map((property) => ({
+          object: 'mediabunny',
+          property,
+          message: 'The adapter is read-only and must not decode, encode, convert, play or write media.'
+        }))
+      ]
+    }
   }
 ];

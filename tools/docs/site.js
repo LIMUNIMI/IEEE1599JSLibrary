@@ -8,7 +8,7 @@ import { Marked } from 'marked';
 export const EXAMPLE_FILES = [
   'examples/index.html', 'examples/main.js', 'examples/score.svg',
   'examples/inspector/index.html', 'examples/inspector/main.js',
-  'examples/shared/score.js',
+  'examples/shared/score.js', 'examples/shared/video.js',
   'examples/dmite/index.html', 'examples/dmite/style.css',
   'examples/dmite/main.js', 'examples/dmite/assets.js', 'examples/dmite/model.js'
 ];

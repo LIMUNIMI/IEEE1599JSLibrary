@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>DmITE | IEEE 1599 example</title>
   <link rel="stylesheet" href="style.css">
+  <script type="importmap">
+    { "imports": { "mediabunny": "https://cdn.jsdelivr.net/npm/mediabunny@1.66.1/dist/bundles/mediabunny.mjs" } }
+  </script>
   <script type="module" src="main.js"></script>
 </head>
 <body>
@@ -36,7 +39,7 @@
     </section>
     <section aria-labelledby="listening">
       <h2 id="listening" class="visually-hidden">Instrument listening panels</h2>
-      <p class="video-notice">Video is unavailable in this dependency-free example.</p>
+      <p class="video-notice">MP4/QuickTime video uses optional Mediabunny container reading and native WebCodecs decoding. Unsupported containers and codecs remain unavailable.</p>
       <div id="panels" class="panels"></div>
       <template id="panel">
         <fieldset class="instrument" disabled>
@@ -46,6 +49,8 @@
             <label>Instrument <select class="instrument-select"></select></label>
           </div>
           <div class="picture">
+            <canvas class="video-feed" aria-label="Instrument video feed" hidden></canvas>
+            <p class="video-status" role="status"></p>
             <div class="compass" aria-hidden="true"><span>Front</span><span>Right</span><span>Back</span><span>Left</span><b></b></div>
             <label>Angle <select class="angle-select"></select></label>
           </div>

@@ -49,3 +49,51 @@ structured diagnostics; use `diagnostics: { verbose: true }` for more detail.
 
 See the [capability record](capabilities.md) for verification and limitations,
 and the [migration guide](migration.md) for replacements for legacy player APIs.
+
+## Optional MP4 and QuickTime demuxing
+
+The package root does not load Mediabunny. Applications that need MP4/MOV
+packet access can use the optional adapter subpath and pass the module in:
+
+```js
+import { openMediabunnyInput } from 'ieee1599jslibrary/adapters/mediabunny';
+
+const media = await openMediabunnyInput({
+  mediabunny: await import('mediabunny'),
+  source: './performance.mov',
+  signal: new AbortController().signal
+});
+const video = media.tracks.find((track) => track.type === 'video');
+if (!video?.canDecode || !video.decoderConfig) {
+  media.dispose();
+  throw new Error('This browser cannot decode the video track');
+}
+const decoder = new VideoDecoder({ output: presentFrame, error: reportDecoderError });
+decoder.configure(video.decoderConfig);
+// Feed video.packets.packets(startPacket, endPacket) to VideoDecoder.
+// The application owns the WebCodecs decoder and shared transport clock.
+```
+
+For a bundled application, install Mediabunny explicitly with
+`pnpm add mediabunny`; the adapter declares it as an optional `^1.66.1` peer
+dependency. A plain browser page can serve the Mediabunny ESM bundle locally
+and map the specifier with an import map:
+
+```html
+<script type="importmap">
+  { "imports": { "mediabunny": "./vendor/mediabunny.mjs" } }
+</script>
+```
+
+In either setup, pass the loaded module to `openMediabunnyInput`; the library
+does not bundle Mediabunny or load it from a CDN itself. Alternatively, apps
+can pass a module they already imported or assembled. This keeps the core
+importable without Mediabunny and leaves version choice and security updates
+with the application.
+
+The adapter reads only MP4 and QuickTime containers and exposes decoder
+configuration, browser decode support and encoded packet access. It does not
+decode, play, convert, encode or write media. Dispose the returned input when
+finished; aborting the supplied signal disposes it and cancels outstanding
+reads. Containers or codecs unsupported by Mediabunny or the browser fail
+explicitly; this adapter is not a general playback transport.

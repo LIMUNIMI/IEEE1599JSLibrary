@@ -26,6 +26,49 @@ const score = `<ieee1599 version="1.0"><general><description><main_title>Synthet
   <audio>${track(paths[0], 0.3, 0.7)}${track(paths[1], 0.9, 1.35)}</audio>
 </ieee1599>`;
 const image = '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="50"><rect width="100" height="50" fill="white"/></svg>';
+const videoPath = 'audio_files/Example/sound.mp4';
+const videoParams = params.replace('track_prefix="sound"', 'track_prefix="sound" video_suffix=".mp4"');
+const videoScore = score.replace('</audio>', `${track(videoPath, 0.4, 0.9).replace('audio_wav', 'video_quicktime')}</audio>`);
+const fakeMediabunny = `
+export const MP4 = {}, QTFF = {};
+export class UrlSource { constructor(url) { this.url = url; } }
+export class BlobSource { constructor(blob) { this.blob = blob; } }
+class Track {
+  type = 'video';
+  async getCodedWidth() { return 16; }
+  async getCodec() { return 'avc1.42E01E'; }
+  async getDecoderConfig() { return { codec: 'avc1.42E01E', codedWidth: 16, codedHeight: 9 }; }
+  async canDecode() { return true; }
+  async getDurationFromMetadata() { return 2; }
+}
+export class Input {
+  constructor() { this.track = new Track(); }
+  async getMimeType() { return 'video/mp4'; }
+  async getTracks() { return [this.track]; }
+  dispose() {}
+}
+export class EncodedPacketSink {}
+function sample(timestamp) {
+  return {
+    timestamp, duration: 0.1, displayWidth: 16, displayHeight: 9,
+    draw(context) {
+      context.fillStyle = timestamp >= 0.4 ? '#ff0000' : '#0000ff';
+      context.fillRect(0, 0, 16, 9);
+    },
+    close() {}
+  };
+}
+export class VideoSampleSink {
+  async getSample(position) {
+    if (position >= 2) return null;
+    return sample(Math.floor(position * 10 + 1e-8) / 10);
+  }
+  async *samples(position) {
+    for (let time = Math.ceil(position * 10 - 1e-8) / 10; time < 2; time = Math.round((time + 0.1) * 10) / 10) {
+      yield sample(time);
+    }
+  }
+}`;
 
 /** Two seconds of silent, mono 8 kHz PCM; decoded by the real AudioContext. */
 function syntheticWave() {
@@ -129,5 +172,85 @@ test('served assets report a missing recording and allow another angle to recove
     assert.equal(await page.locator('#error').textContent(), '');
   } finally {
     await page.close();
+  }
+});
+
+test('reads each private MP4 video into a canvas and follows the selected audio Spine clock', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'dmite-video-test-'));
+  const page = await harness.browser.newPage();
+  page.setDefaultTimeout(5000);
+  try {
+    const videoAssets = new Map(assets);
+    videoAssets.set('params.xml', videoParams);
+    videoAssets.set('variationsserieuses.xml', videoScore);
+    videoAssets.set(videoPath, Buffer.from('synthetic container; decoded by the test module'));
+    for (const [name, body] of videoAssets) {
+      const file = join(directory, name);
+      await mkdir(dirname(file), { recursive: true });
+      await writeFile(file, body);
+    }
+    const sent = [];
+    page.on('request', (request) => {
+      if (new URL(request.url()).pathname.startsWith(prefix)) sent.push(request.url());
+    });
+    await page.route('https://cdn.jsdelivr.net/npm/mediabunny@1.66.1/dist/bundles/mediabunny.mjs',
+      (route) => route.fulfill({ contentType: 'text/javascript', body: fakeMediabunny }));
+    await page.addInitScript(() => {
+      if (!('VideoDecoder' in window)) Object.defineProperty(window, 'VideoDecoder', { value: function VideoDecoder() {} });
+    });
+    await page.goto(new URL(`${example}index.html`, harness.base).href);
+    await page.locator('#assets').setInputFiles(directory);
+    await page.waitForFunction(() => Array.from(document.querySelectorAll('.video-feed'))
+      .every((canvas) => canvas.dataset.timestamp !== undefined));
+    const feeds = page.locator('.video-feed');
+    assert.equal(await feeds.count(), 3);
+    assert.equal(await page.locator('audio, video').count(), 0);
+
+    await page.locator('#score').click({ position: { x: 20, y: 20 } });
+    await page.waitForFunction(() => Number(document.querySelector('.video-feed').dataset.timestamp) >= 0.4);
+    await page.getByRole('button', { name: 'Play', exact: true }).click();
+    await page.waitForFunction(() => Number(document.querySelector('#time').value.split(' / ')[0]) >= 0.65);
+    await page.waitForFunction(() => Number(document.querySelector('.video-feed').dataset.timestamp) >= 0.7);
+    assert.equal(await page.locator('#error').textContent(), '');
+    assert.deepEqual(sent, []);
+  } finally {
+    await page.close();
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('reports an unsupported native video codec without interrupting audio playback', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'dmite-unsupported-video-test-'));
+  const page = await harness.browser.newPage();
+  page.setDefaultTimeout(5000);
+  try {
+    const videoAssets = new Map(assets);
+    videoAssets.set('params.xml', videoParams);
+    videoAssets.set('variationsserieuses.xml', videoScore);
+    videoAssets.set(videoPath, Buffer.from('synthetic container'));
+    for (const [name, body] of videoAssets) {
+      const file = join(directory, name);
+      await mkdir(dirname(file), { recursive: true });
+      await writeFile(file, body);
+    }
+    await page.route('https://cdn.jsdelivr.net/npm/mediabunny@1.66.1/dist/bundles/mediabunny.mjs',
+      (route) => route.fulfill({
+        contentType: 'text/javascript',
+        body: fakeMediabunny.replace('async canDecode() { return true; }', 'async canDecode() { return false; }')
+      }));
+    await page.addInitScript(() => {
+      if (!('VideoDecoder' in window)) Object.defineProperty(window, 'VideoDecoder', { value: function VideoDecoder() {} });
+    });
+    await page.goto(new URL(`${example}index.html`, harness.base).href);
+    await page.locator('#assets').setInputFiles(directory);
+    await page.waitForFunction(() => document.querySelector('.video-status').textContent.includes('cannot decode video codec'));
+    assert.equal(await page.locator('#play').isDisabled(), false);
+    assert.equal(await page.locator('.video-feed:not([hidden])').count(), 0);
+    assert.equal(await page.locator('.compass').first().isVisible(), true);
+    assert.equal(await page.locator('audio, video').count(), 0);
+    assert.equal(await page.locator('#error').textContent(), '');
+  } finally {
+    await page.close();
+    await rm(directory, { recursive: true, force: true });
   }
 });

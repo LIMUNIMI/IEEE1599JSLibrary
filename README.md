@@ -3,7 +3,8 @@
 A modernized, reusable JavaScript library for web players using IEEE 1599.
 It includes a complete, DTD-validated IEEE 1599 document model covering all
 six layers with first-class Spine and LOS, plus a player projection, timeline lookups,
-predecoded Web Audio and optional score/transport UI. Start with
+predecoded Web Audio, an optional read-only MP4/QuickTime demux adapter, and
+optional score/transport UI. Start with
 [Getting started](docs/getting-started.md) and the
 [score and playback guide](docs/playback.md).
 
