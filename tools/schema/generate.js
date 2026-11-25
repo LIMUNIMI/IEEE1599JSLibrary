@@ -287,7 +287,7 @@ export const IEEE1599_SCHEMA = deepFreeze(/** @type {IEEE1599Schema} */ (${JSON.
 
 This reference is generated from the vendored [IEEE 1599 DTD](../schema/ieee1599.dtd)
 (version ${version}, last updated ${lastUpdate}, SHA-256 \`${sha256}\`). It lists
-every declared element and attribute; \`npm run schema:check\` fails when the
+every declared element and attribute; \`pnpm run schema:check\` fails when the
 generated inventory and this page drift from the DTD. See
 [schema provenance](../schema/README.md) and the [data model guide](data-model.md).
 
@@ -346,7 +346,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     if (check) {
       const current = (await readFile(url, 'utf8').catch(() => null))?.replace(/\r\n/g, '\n') ?? null;
       if (current?.replace(/\r\n/g, '\n') !== content) {
-        console.error(`${path} is out of date; run npm run schema:generate`);
+        console.error(`${path} is out of date; run pnpm run schema:generate`);
         stale = true;
       }
     } else await writeFile(url, content);

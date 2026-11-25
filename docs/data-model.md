@@ -4,7 +4,7 @@ The document model covers every element and attribute that the vendored
 [IEEE 1599 DTD 1.0](../schema/README.md) declares. It keeps the source without
 loss, validates it against the DTD, and gives the Spine and the LOS
 first-class indexes. The [schema reference](schema-reference.md) lists every
-element and attribute, and `npm test` checks it against the DTD.
+element and attribute, and `pnpm test` checks it against the DTD.
 
 **Data coverage is not operational support.** The model represents and
 validates, for example, MIDI, Csound, MPEG-4, Petri nets and chord grids, but
@@ -202,3 +202,5 @@ character-reference spelling and attribute quote style are not preserved.
 - [`examples/la-catedral/`](../examples/la-catedral/README.md) loads a real
   document strictly and shows the measure and pitches of the highlighted
   events.
+- [DmITE](../examples/dmite/README.md) reads a known legacy document leniently
+  and uses indexed WAV tracks to drive the score and current notes.

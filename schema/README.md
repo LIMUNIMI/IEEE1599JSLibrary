@@ -75,10 +75,10 @@ The generator records these quirks as declared and does not correct them:
 ## Regeneration
 
 ```powershell
-npm run schema:generate   # rewrite src/schema/*.js and docs/schema-reference.md
-npm run schema:check      # fail when generated outputs drift (part of npm test)
+pnpm run schema:generate   # rewrite src/schema/*.js and docs/schema-reference.md
+pnpm run schema:check      # fail when generated outputs drift (part of pnpm test)
 ```
 
 `tools/schema/dtd.js` is a small, dependency-free reader for the DTD subset used
-here. It rejects unexpected constructs instead of guessing. `npm test` also
+here. It rejects unexpected constructs instead of guessing. `pnpm test` also
 cross-checks its counts against an independent regular-expression inventory.

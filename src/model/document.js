@@ -36,7 +36,7 @@ import { effectiveAttributes, IEEE1599ValidationError, validateTree, vocabularyO
 /**
  * Options for {@link parseIEEE1599Document}.
  * @typedef {object} ParseDocumentOptions
- * @property {boolean} [strict=true] Throw {@link IEEE1599ValidationError} when
+ * @property {boolean} [strict=true] Throw {@link ieee1599/model/validate!IEEE1599ValidationError} when
  *   any DTD validity error is found. With `false` the document is returned and
  *   all findings are listed in `doc.issues`.
  * @property {string} [baseURL] Absolute URL used by `doc.resolveURL()` for

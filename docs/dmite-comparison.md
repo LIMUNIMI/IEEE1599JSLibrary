@@ -3,7 +3,8 @@
 This compares the library with the DmITE reference application. The baseline
 is DmITE branch `murivan-solid-adventure` at commit
 [`da00d96`](https://github.com/Murivan/DmITE/tree/da00d96b94496a3cf18a34b18f3a7db495a2aa3e).
-DmITE is unchanged. This document makes no claim that DmITE has been migrated.
+DmITE is unchanged. The [DmITE listening example](../examples/dmite/README.md)
+reimplements the player layout and audio workflow, not the reference site.
 
 ## IEEE 1599 data coverage
 
@@ -41,17 +42,15 @@ keeps such undeclared attributes in `rawAttributes` and reports them as
 | `MXContent` and `MXMedia`, HTML `<audio>` and `<video>` | Not reused, because playback must use Web Audio and WebCodecs only. Buffered audio uses `createBufferedAudioPlayer()`. Video exists only in the La Catedral example adapter. |
 | `MXContentWebAudio` and `WebAudioManager` | Superseded by the buffered player: shared transport, gain, pan, rate, multiple instances, group ending and diagnostics. |
 | `SyncManager` and `VideoSyncManager`, which correct drift with HTML media seeks | Not implemented. Aligned media share one Web Audio clock. A general mixed-media group and rebuffering remain on the [roadmap](roadmap.md). |
-| `MXGraphics` canvas score: highlight, click, page navigation, one-note mode | `createScoreView()` covers highlight and click-to-seek. La Catedral shows canvas rendering and automatic page following. Page-navigation controls and one-note mode are not yet in the library. |
+| `MXGraphics` canvas score: highlight, click, page navigation, one-note mode | `createScoreView()` covers highlight and click-to-seek. DmITE and La Catedral share an example canvas renderer; the DmITE example adds page navigation and One Note. Those controls are not packaged library features. |
 | `MXLOS` current-note text for a selected voice | Data is available through `doc.los`; the examples show measure and pitches. There is no packaged widget. |
-| `MXSeekbar` | The transport controls include a seek slider. |
+| `MXSeekbar` | Both the optional transport controls and the DmITE example include a seek slider. |
 | `Track.searchByTime`, `trackEventsByRef` | `createTimeline()` with `eventsAt(time)` and `resolve(eventRef)`. |
 | `findGraphicEvents(x, y)` | Hit testing in `createScoreView()`. |
 | Console `debugLog` | Per-player structured diagnostics with bounded retention. |
 
-Remaining gaps from DmITE are tracked in the [roadmap](roadmap.md):
-
-- page navigation UI;
-- one-note (event range) playback;
-- voice filtering for current notes;
-- HTML-free video in the library;
-- mixed-media synchronization.
+The example uses native selects, radios, checkboxes and buttons across three
+listening panels. The selected WAV is fully decoded before playback; angle or
+instrument changes switch by score event. Synchronized MP4 panels are not
+implemented in the dependency-free example, and the package does not provide
+voice filtering or general mixed-media transport. See the [roadmap](roadmap.md).

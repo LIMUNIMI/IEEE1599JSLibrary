@@ -1,0 +1,12 @@
+:root { color-scheme: light dark; font-family: system-ui, sans-serif; line-height: 1.6; }
+body { margin: 0; }
+nav { display: flex; flex-wrap: wrap; gap: 1.5rem; padding: 1rem 2rem; background: #263448; }
+nav a { color: white; }
+main { max-width: 75rem; margin: auto; padding: 1.5rem; overflow-wrap: anywhere; }
+a { color: light-dark(#1459a0, #8ebcff); }
+table { border-collapse: collapse; width: 100%; display: block; overflow-x: auto; }
+td, th { padding: .5rem; border: 1px solid #888; text-align: left; }
+pre { padding: 1rem; overflow: auto; background: light-dark(#eef1f5, #18212e); }
+code { font-size: .9em; }
+footer { padding: 2rem; text-align: center; }
+:target { scroll-margin-top: 1rem; }

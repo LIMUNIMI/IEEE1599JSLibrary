@@ -2,7 +2,7 @@ import { loadIEEE1599Document } from '../../src/model/document.js';
 import { createPlayerProjection } from '../../src/xml/parse.js';
 import { createTimeline } from '../../src/core/timeline.js';
 import { openPerformance } from './playback.js';
-import { scoreCanvas } from './score.js';
+import { scoreCanvas } from '../shared/score.js';
 
 /** @template {HTMLElement} T @param {string} id @param {{new(): T}} type */
 function element(id, type) {
@@ -84,7 +84,7 @@ async function initialize() {
 
   const showPage = () => {
     const page = groups[Number(edition.value)].pages[Number(pages.value)];
-    if (page) void score.show(page).catch(report);
+    if (page) void score.show({ ...page, url: page.url.replace(/\.tif$/i, '.png') }).catch(report);
   };
   const showEdition = () => {
     const group = groups[Number(edition.value)];

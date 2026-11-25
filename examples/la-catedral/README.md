@@ -21,7 +21,7 @@ folder. From the repository root, with Node.js, PowerShell and FFmpeg
 (`libx264` enabled):
 
 ```powershell
-npm ci
+pnpm install --frozen-lockfile
 .\examples\la-catedral\prepare.ps1 -Source 'C:\path\to\LaCatedral'
 python -m http.server 8000 --bind 127.0.0.1
 ```
@@ -62,6 +62,6 @@ const group = await openPerformance({
 await group.play();
 ```
 
-The real-fixture browser tests run with `npm run test:browser` when the assets
+The real-fixture browser tests run with `pnpm run test:browser` when the assets
 have been prepared locally; otherwise the fixture-specific tests are skipped.
 See the [capability evidence](../../docs/capabilities.md) for what was verified.

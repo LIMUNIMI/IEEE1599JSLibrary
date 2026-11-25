@@ -5,7 +5,7 @@
  *
  * The user chose to model only the IEEE 1599 declarations and to represent
  * imported content as **opaque typed subtrees**. Every imported subtree is
- * therefore kept losslessly as {@link IEEE1599Element} nodes whose
+ * therefore kept losslessly as {@link ieee1599/model/node!IEEE1599Element} nodes whose
  * `vocabulary` is `svg` or `midi`, and each subtree root is described by an
  * {@link IEEE1599Import} record. The record states which vocabulary, DTD
  * parameter entity and entry point allowed the content and which IEEE
@@ -22,7 +22,7 @@ import { IEEE1599_SCHEMA } from '../schema/ieee1599-schema.js';
 
 /**
  * Element node that belongs to an imported vocabulary. It has the same
- * traversal API as any {@link IEEE1599Element}; `declaration` is always
+ * traversal API as any {@link ieee1599/model/node!IEEE1599Element}; `declaration` is always
  * `null` because imported declarations are not expanded.
  * @typedef {import('./node.js').IEEE1599Element & { vocabulary: IEEE1599ImportedVocabulary }} IEEE1599ImportedElement
  */

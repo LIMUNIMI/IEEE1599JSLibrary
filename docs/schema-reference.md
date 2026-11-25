@@ -4,7 +4,7 @@
 
 This reference is generated from the vendored [IEEE 1599 DTD](../schema/ieee1599.dtd)
 (version 1.0, last updated 08/04/2007, SHA-256 `6d252f51e1dada2284ab4a21c884c7d4574b09a5a7455758e9b5a07e8d17d04b`). It lists
-every declared element and attribute; `npm run schema:check` fails when the
+every declared element and attribute; `pnpm run schema:check` fails when the
 generated inventory and this page drift from the DTD. See
 [schema provenance](../schema/README.md) and the [data model guide](data-model.md).
 

@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DmITE | IEEE 1599 example</title>
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="main.js"></script>
+</head>
+<body>
+  <header class="masthead">
+    <a href="../index.html" aria-label="Back to the IEEE 1599 player example">IEEE 1599</a>
+    <div>
+      <h1 id="title">DmITE</h1>
+      <p id="credits">Directivity of Musical Instruments in Teaching Environments</p>
+    </div>
+    <a href="#assets">Load assets</a>
+  </header>
+  <main>
+    <section class="assets" aria-label="Private assets">
+      <label>Choose your local assets folder <input id="assets" type="file" webkitdirectory multiple></label>
+      <button id="served" type="button">Load served assets</button>
+      <span id="validation"></span>
+    </section>
+    <p id="status" role="status">Select a folder containing your DmITE assets. Selected files stay in this browser.</p>
+    <p id="error" role="alert"></p>
+    <section class="score" aria-label="Score">
+      <div class="navigation">
+        <label>Edition <select id="edition" disabled></select></label>
+        <label>Page <select id="page" disabled></select></label>
+        <label>Score event <select id="event" disabled></select></label>
+        <button id="jump" type="button" disabled>Go to event</button>
+      </div>
+      <canvas id="score" aria-label="Score image. Use the score event menu for keyboard navigation." hidden></canvas>
+      <output id="note" aria-label="Current score notes"></output>
+    </section>
+    <section aria-labelledby="listening">
+      <h2 id="listening" class="visually-hidden">Instrument listening panels</h2>
+      <p class="video-notice">Video is unavailable in this dependency-free example.</p>
+      <div id="panels" class="panels"></div>
+      <template id="panel">
+        <fieldset class="instrument" disabled>
+          <legend></legend>
+          <div class="panel-controls">
+            <label><input type="radio" name="listening-panel"> Listen</label>
+            <label>Instrument <select class="instrument-select"></select></label>
+          </div>
+          <div class="picture">
+            <div class="compass" aria-hidden="true"><span>Front</span><span>Right</span><span>Back</span><span>Left</span><b></b></div>
+            <label>Angle <select class="angle-select"></select></label>
+          </div>
+        </fieldset>
+      </template>
+    </section>
+  </main>
+  <footer class="transport">
+    <button id="slow" type="button" aria-label="Slow down" disabled>−</button>
+    <button id="normal" type="button" aria-label="Reset playback speed" title="Reset playback speed" disabled>100%</button>
+    <button id="fast" type="button" aria-label="Speed up" disabled>+</button>
+    <button id="rewind" type="button" disabled>Rewind</button>
+    <button id="play" type="button" disabled>Play</button>
+    <label><input id="one-note" type="checkbox" disabled> One Note</label>
+    <label class="position">Position <input id="position" type="range" min="0" max="0" step="0.01" value="0" disabled></label>
+    <output id="time" aria-label="Time in seconds">0.00 / 0.00 s</output>
+  </footer>
+</body>
+</html>

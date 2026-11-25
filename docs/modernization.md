@@ -59,7 +59,7 @@ frameworks and prototype mutation.
 
 Standing rules from these requests: every exported contract and substantial
 internal interface has maintained JSDoc checked by `tsc` (`checkJs`); every
-DTD element/attribute exists in the model (enforced by `npm run
+DTD element/attribute exists in the model (enforced by `pnpm run
 schema:check`); data coverage is documented separately from operational
 support; tests and examples are updated with each slice.
 

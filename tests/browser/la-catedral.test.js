@@ -30,7 +30,7 @@ before(async () => {
   const files = new Map([
     ['/node_modules/mediabunny/dist/bundles/mediabunny.mjs', new URL('node_modules/mediabunny/dist/bundles/mediabunny.mjs', root)]
   ]);
-  await Promise.all([addDirectory(example, files), addDirectory('src/', files)]);
+  await Promise.all([addDirectory(example, files), addDirectory('examples/shared/', files), addDirectory('src/', files)]);
   server = createServer(async (request, response) => {
     const url = files.get(request.url);
     if (!url) { response.writeHead(404).end(); return; }

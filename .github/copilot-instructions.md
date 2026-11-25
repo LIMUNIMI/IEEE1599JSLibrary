@@ -2,9 +2,10 @@
 
 ## Project overview and structure
 
-IEEE1599JSLibrary is described in `README.md` as a modernized version of the core JavaScript library used by web players. The current repository contains only `README.md` and `LICENSE`; it does not yet include library source files or a defined source layout.
-
-Keep future implementation files organized around the library's functionality, and update this file if the source layout or development workflow is established.
+IEEE1599JSLibrary is a modern JavaScript ES-module library for IEEE 1599 web
+players. Read `AGENTS.md` and the documentation it links before changing the
+library. Source is organized under `src/`, with tests in `tests/`, applications
+in `examples/`, and maintained guides in `docs/`.
 
 ## Coding conventions
 
@@ -17,8 +18,14 @@ No more specific coding conventions are currently documented.
 
 ## Tests
 
-There is currently no test suite, test framework, or test configuration in the repository. Do not assume a test command; use the framework and scripts declared by the project when they are added, and add focused tests for new behavior.
+Use `pnpm test` for the Node tests and generated-schema check, and
+`pnpm run test:browser` for browser tests. Add focused tests for new behavior.
 
 ## Build and run
 
-There is currently no package manifest, build configuration, or runnable application in the repository, so no build or run commands are available. When these are introduced, use the commands documented in the package manifest or project documentation and update this file accordingly.
+Use Node.js 26 LTS and the pnpm version pinned in `package.json`.
+Install with `pnpm install --frozen-lockfile`, and run `pnpm run lint`,
+`pnpm run typecheck`, and `pnpm run docs:build`. Maintain `pnpm-lock.yaml`,
+JSDoc, guides and `CHANGELOG.md` with related changes.
+Use uv instead of pip if Python dependencies are introduced; the local
+Python HTTP server currently needs only the standard library.

@@ -5,7 +5,9 @@ compatibility. Streaming audio, general-purpose video and mixed-media
 transport, track crossfades and a complete browser/codec support matrix are
 not implemented. The [La Catedral example](../examples/la-catedral/README.md)
 shows one application-specific WebCodecs video adapter synchronized with a
-predecoded soundtrack and an IEEE 1599 score.
+predecoded soundtrack and an IEEE 1599 score. The
+[DmITE listening example](../examples/dmite/README.md) shows a native audio
+player with app-specific instrument and angle mappings and no runtime packages.
 
 | Legacy responsibility | Current replacement |
 | --- | --- |

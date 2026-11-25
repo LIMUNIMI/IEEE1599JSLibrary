@@ -1,0 +1,16 @@
+{
+  "name": "IEEE1599JSLibrary API",
+  "entryPoints": ["src"],
+  "entryPointStrategy": "expand",
+  "tsconfig": "tsconfig.json",
+  "out": "_site/api",
+  "readme": "none",
+  "excludeInternal": true,
+  "excludeExternals": true,
+  "excludeReferences": true,
+  "validation": {
+    "notExported": true,
+    "invalidLink": true
+  },
+  "treatValidationWarningsAsErrors": true
+}

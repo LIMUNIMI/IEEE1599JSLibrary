@@ -1,9 +1,12 @@
 /**
  * Public entry point of the IEEE 1599 JavaScript library.
  *
- * - Data model: {@link parseIEEE1599Document}, {@link loadIEEE1599Document},
- *   {@link serializeIEEE1599Document} and the generated {@link IEEE1599_SCHEMA}.
- * - Player projection: {@link parseIEEE1599}, {@link loadIEEE1599}.
+ * - Data model: {@link ieee1599/model/document!parseIEEE1599Document},
+ *   {@link ieee1599/model/document!loadIEEE1599Document},
+ *   {@link ieee1599/model/document!serializeIEEE1599Document} and the generated
+ *   {@link ieee1599/schema!IEEE1599_SCHEMA}.
+ * - Player projection: {@link ieee1599/xml/parse!parseIEEE1599},
+ *   {@link ieee1599/xml/parse!loadIEEE1599}.
  * - Playback core: timeline, buffered Web Audio player and diagnostics.
  *
  * Optional UI modules (`src/ui/*.js`) are not re-exported so that headless
