@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Synthetic IEEE 1599 document covering all six layers (test fixture). -->
+<?app-hint mode="test"?>
+<!DOCTYPE ieee1599 SYSTEM "https://www.lim.di.unimi.it/IEEE/ieee1599.dtd">
+<ieee1599 version="1.0" creator="IEEE1599JSLibrary tests">
+  <general>
+    <description>
+      <main_title>Six Layers</main_title>
+      <author type="composer">A. Composer</author>
+      <author type="lyricist">B. Poet</author>
+      <work_title>Study &amp; Variations</work_title>
+      <work_number>Op. 1</work_number>
+      <genres><genre name="study"/></genres>
+    </description>
+    <related_files>
+      <related_file file_name="notes/preface.pdf" file_format="application_pdf" encoding_format="application_pdf" description="Preface"/>
+    </related_files>
+    <notes>Mixed <![CDATA[<raw> & text]]> content</notes>
+  </general>
+  <logic>
+    <spine>
+      <event id="e1" timing="0" hpos="0"/>
+      <event id="e2" timing="0" hpos="0"/>
+      <event id="e3" timing="1024" hpos="40"/>
+      <event id="e4" timing="512" hpos="20"/>
+      <event id="e5"/>
+      <event id="e6" timing="256" hpos="10"/>
+    </spine>
+    <los>
+      <staff_list>
+        <staff id="s1"><clef shape="G" staff_step="2" event_ref="e1"/></staff>
+        <staff id="s2" line_number="5"><clef shape="F" staff_step="6" event_ref="e2"/></staff>
+      </staff_list>
+      <part id="p1">
+        <voice_list>
+          <voice_item id="v1" staff_ref="s1"/>
+          <voice_item id="v2" staff_ref="s2"/>
+        </voice_list>
+        <measure number="1">
+          <voice voice_item_ref="v1">
+            <!-- first chord -->
+            <chord event_ref="e1" stem_direction="up"><duration num="1" den="2"/><notehead><pitch step="C" octave="5"/></notehead></chord>
+            <chord event_ref="e3" beam_before="yes"><duration num="1" den="4"/><augmentation_dots/><notehead><pitch step="E" octave="5" actual_accidental="flat"/><printed_accidentals><flat/></printed_accidentals></notehead><notehead><pitch step="G" octave="5"/></notehead></chord>
+          </voice>
+          <voice voice_item_ref="v2">
+            <rest event_ref="e2" staff_ref="s2"><duration num="3" den="4"/></rest>
+            <chord event_ref="e4"><duration num="1" den="4"/><notehead><pitch step="C" octave="3"/></notehead></chord>
+          </voice>
+        </measure>
+        <measure number="2">
+          <voice voice_item_ref="v1">
+            <chord event_ref="e5"><duration num="1" den="1"/><notehead><pitch step="D" octave="5"/></notehead></chord>
+          </voice>
+          <voice voice_item_ref="v2">
+            <rest event_ref="e6"><duration num="1" den="1"/></rest>
+          </voice>
+        </measure>
+      </part>
+      <horizontal_symbols>
+        <slur start_event_ref="e1" end_event_ref="e3"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="4"><path d="M0 4 Q5 0 10 4"/></svg></slur>
+      </horizontal_symbols>
+      <lyrics part_ref="p1" voice_ref="v1"><syllable start_event_ref="e1" hyphen="yes">Sing</syllable><syllable start_event_ref="e3">ing</syllable></lyrics>
+    </los>
+  </logic>
+  <structural>
+    <analysis>
+      <segmentation>
+        <segment id="seg1"><segment_event event_ref="e1"/><segment_event event_ref="e3"/><feature_object name="motif"><simple_description>Opening motif</simple_description></feature_object></segment>
+      </segmentation>
+    </analysis>
+  </structural>
+  <notational>
+    <graphic_instance_group description="Engraved score">
+      <graphic_instance position_in_group="1" file_name="pages/page-1.png" file_format="image_png" encoding_format="image_png" measurement_unit="pixels">
+        <graphic_event event_ref="e1" upper_left_x="10" upper_left_y="20" lower_right_x="30" lower_right_y="60"/>
+        <graphic_event event_ref="e3" upper_left_x="40" upper_left_y="20" lower_right_x="60" lower_right_y="60"/>
+      </graphic_instance>
+    </graphic_instance_group>
+    <notation_instance_group description="Encoded score">
+      <notation_instance position_in_group="1" file_name="score.musicxml" format="MusicXML" measurement_unit="measures">
+        <notation_event event_ref="e1" start_position="1" end_position="1"/>
+      </notation_instance>
+    </notation_instance_group>
+  </notational>
+  <performance>
+    <midi_instance file_name="perf.mid" format="1">
+      <midi_mapping part_ref="p1" track="1" channel="1">
+        <midi_event_sequence division_type="metrical" division_value="480" measurement_unit="ticks">
+          <midi_event timing="0" event_ref="e1"><NoteOn Channel="1" Note="72" Velocity="80"/></midi_event>
+        </midi_event_sequence>
+      </midi_mapping>
+    </midi_instance>
+  </performance>
+  <audio>
+    <track file_name="audio/take-1.wav" file_format="audio_wav" encoding_format="audio_wav">
+      <track_indexing timing_type="seconds">
+        <track_event start_time="0" event_ref="e1"/>
+        <track_event start_time="0.5" event_ref="e3"/>
+        <track_event start_time="0.75" event_ref="e4"/>
+      </track_indexing>
+    </track>
+  </audio>
+</ieee1599>
+<!-- trailing comment -->

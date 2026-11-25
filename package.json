@@ -1,0 +1,27 @@
+{
+  "name": "ieee1599jslibrary",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "npm run schema:check && node --test tests/*.test.js",
+    "test:browser": "node --test tests/browser/*.test.js",
+    "schema:generate": "node tools/schema/generate.js",
+    "schema:check": "node tools/schema/generate.js --check"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "eslint": "^9.39.1",
+    "mediabunny": "1.66.1",
+    "playwright-core": "^1.57.0",
+    "typescript": "^5.9.3"
+  },
+  "exports": {
+    ".": "./src/index.js",
+    "./ui/score-view.js": "./src/ui/score-view.js",
+    "./ui/transport-controls.js": "./src/ui/transport-controls.js",
+    "./schema/ieee1599.dtd": "./schema/ieee1599.dtd"
+  }
+}
