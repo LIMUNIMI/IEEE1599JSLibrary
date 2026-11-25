@@ -23,7 +23,7 @@ folder. From the repository root, with Node.js, PowerShell and FFmpeg
 ```powershell
 pnpm install --frozen-lockfile
 .\examples\la-catedral\prepare.ps1 -Source 'C:\path\to\LaCatedral'
-python -m http.server 8000 --bind 127.0.0.1
+pnpm run serve
 ```
 
 Open [the local demo](http://127.0.0.1:8000/examples/la-catedral/). Use a browser

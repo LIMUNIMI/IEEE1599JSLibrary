@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Add the [Build your own player](docs/build-your-player.md) guide for
+  musicologists and other non-developers, with a commented starter player
+  (`examples/starter/`) that follows the score, turns pages, seeks from score
+  clicks and switches recordings at the same score event. Its
+  `materials/` folder is ignored by Git.
+- Add `pnpm run serve` (`tools/serve.js`), a dependency-free localhost-only
+  static server with byte-range support, and use it instead of Python in the
+  documentation.
 - Recommend Node.js 26 LTS and use it in the documentation workflow;
   verify the toolchain with Node.js 26.13.1.
 - Migrate JavaScript dependency management, scripts and CI from npm to pnpm,

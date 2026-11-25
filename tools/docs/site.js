@@ -8,6 +8,7 @@ import { Marked } from 'marked';
 export const EXAMPLE_FILES = [
   'examples/index.html', 'examples/main.js', 'examples/score.svg',
   'examples/inspector/index.html', 'examples/inspector/main.js',
+  'examples/starter/index.html', 'examples/starter/main.js',
   'examples/shared/score.js', 'examples/shared/video.js',
   'examples/dmite/index.html', 'examples/dmite/style.css',
   'examples/dmite/main.js', 'examples/dmite/assets.js', 'examples/dmite/model.js'
@@ -59,7 +60,7 @@ export function renderGuide(markdown, root) {
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
 <title>${escape(title)}</title><link rel="stylesheet" href="${root}site.css"></head>
 <body><nav aria-label="Documentation"><a href="${root}index.html">IEEE1599JSLibrary</a>
-<a href="${root}api/index.html">API reference</a><a href="${root}docs/getting-started.html">Getting started</a>
+<a href="${root}api/index.html">API reference</a><a href="${root}docs/build-your-player.html">Build your player</a><a href="${root}docs/getting-started.html">Getting started</a>
 <a href="${root}examples/dmite/index.html">DmITE</a><a href="${root}CHANGELOG.html">Changes</a></nav>
 <main>${parser.parse(markdown)}</main><footer>Generated from maintained Markdown and JSDoc. Local media is not published.</footer></body></html>`;
 }

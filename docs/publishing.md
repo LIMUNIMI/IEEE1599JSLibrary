@@ -16,7 +16,7 @@ checked with Node.js 26.13.1. From the repository root:
 ```text
 pnpm install --frozen-lockfile
 pnpm run docs:build
-python -m http.server 8000 --bind 127.0.0.1 --directory _site
+pnpm run serve --root _site
 ```
 
 Open `http://127.0.0.1:8000/`. The build replaces `_site/` and fails on

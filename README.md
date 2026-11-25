@@ -4,7 +4,14 @@ A modernized, reusable JavaScript library for web players using IEEE 1599.
 It includes a complete, DTD-validated IEEE 1599 document model covering all
 six layers with first-class Spine and LOS, plus a player projection, timeline lookups,
 predecoded Web Audio, an optional read-only MP4/QuickTime demux adapter, and
-optional score/transport UI. Start with
+optional score/transport UI.
+
+**Have IEEE 1599 material and want a web player?** Start with
+[Build your own player](docs/build-your-player.md): a step-by-step guide with
+a ready-to-copy [starter player](examples/starter/index.html) that needs only
+Node.js and a browser.
+
+**Developing with or on the library?** Start with
 [Getting started](docs/getting-started.md) and the
 [score and playback guide](docs/playback.md).
 
@@ -23,9 +30,11 @@ Use [Node.js 26 LTS](https://nodejs.org/en/about/previous-releases) and the
 pnpm version pinned in `package.json`.
 Run `pnpm install --frozen-lockfile`, `pnpm run lint`, `pnpm run typecheck`, `pnpm test` and
 `pnpm run test:browser`. `pnpm run docs:build` generates the API reference,
-guides and asset-free examples in `_site/`.
+guides and asset-free examples in `_site/`. `pnpm run serve` (or
+`node tools/serve.js`) serves the checkout on `http://127.0.0.1:8000/`.
 
 Examples: [minimal player](examples/index.html),
+[starter player for your own material](examples/starter/index.html),
 [document inspector](examples/inspector/index.html),
 [DmITE private-asset listening player](examples/dmite/README.md), and
 [La Catedral WebCodecs demonstration](examples/la-catedral/README.md).

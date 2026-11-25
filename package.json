@@ -5,6 +5,7 @@
   "type": "module",
   "packageManager": "pnpm@12.10.1",
   "scripts": {
+    "serve": "node tools/serve.js",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "pnpm run schema:check && node --test tests/*.test.js",
