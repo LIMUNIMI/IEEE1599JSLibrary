@@ -253,6 +253,8 @@ function mount(source, doc, params, signal) {
     feed.timeline = undefined;
     feed.canvas.hidden = true;
     feed.compass.hidden = false;
+    const controller = new AbortController();
+    feed.controller = controller;
     const instrument = instruments[index];
     if (!instrument.video) {
       feed.status.textContent = 'No indexed video for this instrument.';
@@ -260,12 +262,13 @@ function mount(source, doc, params, signal) {
       return;
     }
 
-    const controller = new AbortController();
-    feed.controller = controller;
     feed.status.textContent = 'Opening video…';
     feed.status.hidden = false;
     /** @type {Awaited<ReturnType<typeof openVideo>> | undefined} */
     let picture;
+    /** @type {ReturnType<typeof createVideoPresenter> | undefined} */
+    let presenter;
+    const cancelPrime = () => presenter?.dispose();
     try {
       picture = await source.media(instrument.video.path,
         (input) => openVideo(input, feed.canvas, controller.signal));
@@ -274,43 +277,39 @@ function mount(source, doc, params, signal) {
         return;
       }
       const timeline = recordingTimeline(spineIds, instrument.video.track);
-      const presenter = createVideoPresenter(picture);
+      presenter = createVideoPresenter(picture);
+      controller.signal.addEventListener('abort', cancelPrime, { once: true });
+      await presenter.seek(videoPosition(timeline, active?.player.currentTime ?? 0));
+      if (controller.signal.aborted) return;
       feed.timeline = timeline;
       feed.presenter = presenter;
-      await presenter.seek(videoPosition(timeline, active?.player.currentTime ?? 0));
-      if (controller.signal.aborted) {
-        presenter.dispose();
-        feed.presenter = undefined;
-        feed.timeline = undefined;
-        return;
-      }
       feed.canvas.hidden = false;
       feed.compass.hidden = true;
       feed.status.hidden = true;
     } catch (reason) {
-      if (feed.presenter) {
-        feed.presenter.dispose();
-        feed.presenter = undefined;
-        feed.timeline = undefined;
-      } else {
-        picture?.dispose();
-      }
-      if (!controller.signal.aborted) {
+      if (presenter) presenter.dispose();
+      else picture?.dispose();
+      if (feed.controller === controller && !controller.signal.aborted) {
         feed.status.textContent = `Video unavailable: ${reason instanceof Error ? reason.message : String(reason)}`;
         feed.status.hidden = false;
         feed.canvas.hidden = true;
         feed.compass.hidden = false;
       }
+    } finally {
+      controller.signal.removeEventListener('abort', cancelPrime);
     }
   }
 
   function renderVideos() {
     const seconds = active?.player.currentTime ?? 0;
     for (const feed of videoFeeds) {
-      if (!feed.presenter || !feed.timeline) continue;
-      void feed.presenter.present(videoPosition(feed.timeline, seconds)).catch((reason) => {
-        feed.presenter?.dispose();
+      const { presenter, timeline } = feed;
+      if (!presenter || !timeline) continue;
+      void presenter.present(videoPosition(timeline, seconds)).catch((reason) => {
+        if (feed.presenter !== presenter) return;
+        presenter.dispose();
         feed.presenter = undefined;
+        feed.timeline = undefined;
         feed.canvas.hidden = true;
         feed.compass.hidden = false;
         feed.status.textContent = `Video unavailable: ${reason instanceof Error ? reason.message : String(reason)}`;

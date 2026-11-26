@@ -67,6 +67,9 @@ export function createScorePager({ container, pages, onSeek }) {
     viewport.scrollTop = 0;
     viewport.scrollLeft = 0;
     update();
+    const focused = root.getRootNode();
+    const active = 'activeElement' in focused ? focused.activeElement : null;
+    if ((active === previous && previous.disabled) || (active === next && next.disabled)) viewport.focus();
   }
   /** @param {number} value */
   function setZoom(value) {
@@ -98,8 +101,9 @@ export function createScorePager({ container, pages, onSeek }) {
     showPage, setZoom,
     highlight(eventRefs, { follow = true, scroll = false } = {}) {
       if (disposed) return;
-      const changed = refs.join('\0') !== eventRefs.join('\0');
-      refs = eventRefs;
+      const changed = refs.length !== eventRefs.length || refs.some((ref, index) => ref !== eventRefs[index]);
+      if (changed) refs = [...eventRefs];
+      const previousPage = pageIndex;
       const focused = viewport.getRootNode() instanceof ShadowRoot
         ? /** @type {ShadowRoot} */ (viewport.getRootNode()).activeElement : document.activeElement;
       const editingEvent = focused instanceof Element && focused.getAttribute('role') === 'button' && viewport.contains(focused);
@@ -108,7 +112,7 @@ export function createScorePager({ container, pages, onSeek }) {
         if (index >= 0) showPage(index);
       }
       view.highlight(refs);
-      if (scroll && changed) view.scrollToCurrent();
+      if (scroll && (changed || previousPage !== pageIndex)) view.scrollToCurrent();
     },
     dispose() {
       disposed = true;

@@ -26,7 +26,13 @@ void player.present();
 const timeline = createTimeline(['event-1'], [{ eventRef: 'event-1', time: 0 }]);
 const mappedTime: number = timeline.resolve('event-1').time;
 void mappedTime;
-void openMediabunnyInput({ mediabunny: {}, source: 'recording.mp4' });
+void openMediabunnyInput({ mediabunny: {}, source: 'recording.mp4' }).then((input) => {
+  const track = input.tracks.find((track) => track.type === 'audio');
+  if (!track?.decoderConfig || !track.duration) return;
+  return createStreamingAudioPlayer({
+    track: { decoderConfig: track.decoderConfig, duration: track.duration, async *chunks() {} }
+  });
+});
 void loadIIIFImage('https://example.org/iiif/score/info.json');
 const PlayerElement = defineIEEE1599Player();
 const embedded = new PlayerElement();

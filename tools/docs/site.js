@@ -13,7 +13,8 @@ export const EXAMPLE_FILES = [
   'examples/streaming/index.html', 'examples/streaming/main.js',
   'examples/shared/score.js', 'examples/shared/video.js',
   'examples/dmite/index.html', 'examples/dmite/style.css',
-  'examples/dmite/main.js', 'examples/dmite/assets.js', 'examples/dmite/model.js'
+  'examples/dmite/main.js', 'examples/dmite/assets.js', 'examples/dmite/model.js',
+  'tests/fixtures/all-layers.xml'
 ];
 
 /**

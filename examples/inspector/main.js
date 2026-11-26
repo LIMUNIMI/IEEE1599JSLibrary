@@ -1,4 +1,4 @@
-import { parseIEEE1599Document, serializeIEEE1599Document } from '../../src/model/document.js';
+import { decodeXML, parseIEEE1599Document, serializeIEEE1599Document } from '../../src/model/document.js';
 
 /** @typedef {import('../../src/model/document.js').IEEE1599Document} IEEE1599Document */
 /** @typedef {import('../../src/model/node.js').IEEE1599Element} IEEE1599Element */
@@ -92,13 +92,15 @@ function inspect(xml, baseURL) {
 
 fileInput.addEventListener('change', async () => {
   const file = fileInput.files?.[0];
-  if (file) inspect(await file.text(), location.href);
+  if (!file) return;
+  try { inspect(decodeXML(await file.arrayBuffer()), location.href); }
+  catch (reason) { errorOutput.textContent = reason instanceof Error ? reason.message : String(reason); }
 });
 sample.addEventListener('click', async () => {
   try {
     const response = await fetch('../../tests/fixtures/all-layers.xml');
     if (!response.ok) throw new Error(`Sample fetch failed: HTTP ${response.status}`);
-    inspect(await response.text(), response.url);
+    inspect(decodeXML(await response.arrayBuffer(), response.headers.get('Content-Type')), response.url);
   } catch (reason) {
     errorOutput.textContent = reason instanceof Error ? reason.message : String(reason);
   }

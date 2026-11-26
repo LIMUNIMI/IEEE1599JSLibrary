@@ -69,7 +69,7 @@ export function createSynchronizedMediaPlayer({ audio, videos = [] }) {
     || typeof audio.seek !== 'function' || typeof audio.dispose !== 'function'
     || typeof audio.addEventListener !== 'function' || typeof audio.removeEventListener !== 'function'
     || !('currentTime' in audio) || !('duration' in audio) || !('state' in audio)) {
-    throw new TypeError('A compatible buffered audio player is required');
+    throw new TypeError('A compatible audio transport is required');
   }
   if (!Array.isArray(videos) || videos.some((video) => !video
     || typeof video.seek !== 'function' || typeof video.present !== 'function'
@@ -84,6 +84,9 @@ export function createSynchronizedMediaPlayer({ audio, videos = [] }) {
   let disposed = false;
   let wantsPlay = false;
   let buffering = false;
+  let viewWork = Promise.resolve();
+  /** @type {Promise<void> | undefined} */
+  let presenting;
   const events = new EventTarget();
   let publishedState = audio.state;
   /** @type {SynchronizedMediaPlayer} */
@@ -116,9 +119,62 @@ export function createSynchronizedMediaPlayer({ audio, videos = [] }) {
   const eventTypes = ['statechange', 'positionchange', 'error'];
   for (const type of eventTypes) audio.addEventListener(type, relay);
 
-  /** @param {number} seconds */
-  async function seekViews(seconds) {
-    await Promise.all(videos.map((video) => video.seek(seconds)));
+  /**
+   * Drain all running view callbacks before a newer batch can render over
+   * them. A callback already in flight cannot be canceled by this contract.
+   * @param {number} command
+   * @param {'seek' | 'present'} method
+   * @param {number} seconds
+   */
+  function updateViews(command, method, seconds) {
+    const next = viewWork.then(async () => {
+      if (disposed || command !== generation) return;
+      const results = await Promise.allSettled(videos.map(async (video) => video[method](seconds)));
+      const rejected = results.find((result) => result.status === 'rejected');
+      if (rejected && !disposed && command === generation) throw rejected.reason;
+    });
+    viewWork = next.then(() => {}, () => {});
+    return next;
+  }
+
+  /** @param {number} command */
+  async function presentViews(command) {
+    await updateViews(command, 'present', audio.currentTime);
+    if (command !== generation || disposed || audio.state !== 'playing') return;
+    /** @param {number} time */
+    const stalledAt = (time) => videos.filter((video) => video.isBuffering?.(time));
+    if (!stalledAt(audio.currentTime).length) return;
+
+    buffering = true;
+    audio.pause();
+    publishState();
+    try {
+      const frozen = audio.currentTime;
+      while (command === generation && !disposed) {
+        const stalled = stalledAt(frozen);
+        await Promise.all(stalled.map((video) => video.whenReady?.()));
+        if (command !== generation || disposed) return;
+        if (stalled.some((video) => video.isBuffering?.(frozen))) {
+          throw new Error('A video view reported readiness while still buffering');
+        }
+        if (stalledAt(frozen).length) continue;
+        await updateViews(command, 'present', frozen);
+        if (command !== generation || disposed) return;
+        if (stalledAt(frozen).length) continue;
+        if (wantsPlay) await audio.play();
+        return;
+      }
+    } catch (error) {
+      if (command === generation && !disposed) {
+        wantsPlay = false;
+        throw error;
+      }
+    } finally {
+      if (command === generation) {
+        buffering = false;
+        publishState();
+      }
+    }
   }
 
   controller = {
@@ -133,13 +189,14 @@ export function createSynchronizedMediaPlayer({ audio, videos = [] }) {
       assertUsable();
       if (wantsPlay && audio.state === 'playing') return;
       const command = ++generation;
+      presenting = undefined;
       buffering = false;
       publishState();
       wantsPlay = true;
       try {
         if (audio.state === 'ended') await audio.seek(0);
         if (command !== generation || disposed) return;
-        await seekViews(audio.currentTime);
+        await updateViews(command, 'seek', audio.currentTime);
         if (command === generation && wantsPlay && !disposed) await audio.play();
       } catch (error) {
         if (command === generation) wantsPlay = false;
@@ -150,6 +207,7 @@ export function createSynchronizedMediaPlayer({ audio, videos = [] }) {
     pause() {
       assertUsable();
       ++generation;
+      presenting = undefined;
       wantsPlay = false;
       buffering = false;
       audio.pause();
@@ -160,6 +218,7 @@ export function createSynchronizedMediaPlayer({ audio, videos = [] }) {
       assertUsable();
       if (!Number.isFinite(seconds) || seconds < 0) throw new Error('Invalid seek position');
       const command = ++generation;
+      presenting = undefined;
       buffering = false;
       publishState();
       const resume = wantsPlay || audio.state === 'playing';
@@ -167,8 +226,11 @@ export function createSynchronizedMediaPlayer({ audio, videos = [] }) {
       try {
         await audio.seek(seconds);
         if (command !== generation || disposed) return;
-        await seekViews(audio.currentTime);
-        if (command === generation && resume && !disposed) {
+        await updateViews(command, 'seek', audio.currentTime);
+        if (command !== generation || disposed) return;
+        if (audio.state === 'ended' || audio.currentTime >= audio.duration) {
+          wantsPlay = false;
+        } else if (resume) {
           wantsPlay = true;
           await audio.play();
         }
@@ -181,35 +243,13 @@ export function createSynchronizedMediaPlayer({ audio, videos = [] }) {
     async present() {
       assertUsable();
       if (audio.state !== 'playing') return;
-      const position = audio.currentTime;
-      const command = generation;
-      await Promise.all(videos.map((video) => video.present(position)));
-      if (command !== generation || disposed) {
-        if (!disposed) await seekViews(audio.currentTime);
-        return;
-      }
-      const stalled = videos.filter((video) => video.isBuffering?.(audio.currentTime));
-      if (stalled.length === 0) return;
-
-      buffering = true;
-      audio.pause();
-      publishState();
+      if (presenting) return;
+      const request = presentViews(generation);
+      presenting = request;
       try {
-        while (videos.some((video) => video.isBuffering?.(audio.currentTime))) {
-          const waiting = videos.filter((video) => video.isBuffering?.(audio.currentTime));
-          await Promise.all(waiting.map((video) => video.whenReady?.()));
-          if (command !== generation || disposed) return;
-        }
-        await Promise.all(videos.map((video) => video.present(audio.currentTime)));
-        if (command === generation && wantsPlay && !disposed) await audio.play();
-      } catch (error) {
-        if (command === generation) wantsPlay = false;
-        throw error;
+        await request;
       } finally {
-        if (command === generation) {
-          buffering = false;
-          publishState();
-        }
+        if (presenting === request) presenting = undefined;
       }
     },
 

@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- Fix synchronized seek and refill races, including a seek to the end that
+  previously restarted playback. Clear decoded buffers on disposal and
+  bound streaming PCM transfers after preroll trimming. Streaming no longer
+  waits for reader EOF at the declared duration.
+- Honor legacy XML encodings, preserve comment and instruction order around
+  DOCTYPE, and ignore declaration-like text in comments and CDATA. Normalize
+  references and optional offsets and warn when skipping unsupported score
+  units or track time bases.
+- Protect the current DmITE video feed from stale requests, let users pause
+  embedding startup, and preserve usable keyboard focus at score boundaries
+  without rewriting unchanged highlights.
+- Include the public inspector sample in the generated site. Gate Pages and
+  tagged releases on browser and artifact checks; add synthetic cross-origin
+  MP4 range, H.264 and AAC decode evidence.
+
 - Add experimental bounded single-track native AudioDecoder/AudioWorklet
   streaming, with transferable PCM, backpressure, seek/preroll, starvation
   recovery and explicit unsupported-rate/codec errors. No streaming resampler,

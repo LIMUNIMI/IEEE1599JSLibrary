@@ -134,11 +134,15 @@ export function createScoreView({ container, page, onSeek }) {
   } else image.src = page.url;
   /** @type {SVGRectElement | undefined} */
   let current;
+  /** @type {Set<string> | undefined} */
+  let highlighted;
   return {
     ready,
     /** @param {readonly string[]} eventRefs */
     highlight(eventRefs) {
       const selected = new Set(eventRefs);
+      if (highlighted?.size === selected.size && [...selected].every((ref) => highlighted?.has(ref))) return;
+      highlighted = selected;
       current = undefined;
       for (const { element, eventRef } of rectangles) {
         const active = selected.has(eventRef);

@@ -161,7 +161,7 @@ async function open(url) {
     session.spine = piece.spine.map((event) => event.id);
     session.pages = piece.graphicInstances[0]?.pages ?? [];
     const recordings = playableRecordings(piece);
-    if (!session.pages.length) throw new Error('The document has no score pages (notational layer).');
+    if (!session.pages.length) throw new Error('The document has no usable score pages (pixel coordinates required).');
     if (!recordings.length) throw new Error('The document has no indexed audio recording (audio layer, timing in seconds).');
     const select = element('#recording');
     select.replaceChildren(...recordings.map((recording, index) =>
@@ -171,7 +171,10 @@ async function open(url) {
     };
     element('#player').hidden = false;
     await useRecording(recordings[0], loading.signal);
-    if (!doc.valid) element('#status').textContent = `Opened with ${doc.issues.length} validation finding(s); check them in the inspector example.`;
+    element('#status').textContent = [
+      !doc.valid ? `Opened with ${doc.issues.length} validation finding(s); check them in the inspector example.` : '',
+      ...piece.warnings.filter((warning) => !warning.startsWith('Unsupported XML element:'))
+    ].filter(Boolean).join(' ');
   } catch (error) {
     report(error);
   }

@@ -12,7 +12,11 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  release:
+  verify:
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -32,11 +36,42 @@ jobs:
       - run: pnpm test
       - run: pnpm run types:check
       - run: pnpm run docs:build
-      - run: pnpm exec playwright-core install --with-deps chromium
+      - run: pnpm exec playwright-core install --with-deps ${{ matrix.browser }}
+      - name: Enable a headless audio output for Firefox
+        if: matrix.browser == 'firefox'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pulseaudio pulseaudio-utils
+          pulseaudio --start --exit-idle-time=-1
+          pactl load-module module-null-sink sink_name=ieee1599
+          pactl set-default-sink ieee1599
+      - run: pnpm run test:browser:matrix
+        env:
+          BROWSER: ${{ matrix.browser }}
       - run: pnpm run test:browser
+        if: matrix.browser == 'chromium'
         env:
           BROWSER: chromium
-      - run: pnpm pack --pack-destination release-dist
+      - run: pnpm run test:artifacts
+        if: matrix.browser == 'chromium'
+        env:
+          BROWSER: chromium
+      - uses: actions/upload-artifact@v7
+        if: matrix.browser == 'chromium'
+        with:
+          name: verified-package
+          path: dist/*.tgz
+          if-no-files-found: error
+
+  release:
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: verified-package
+          path: release-dist
       - run: gh release create "$GITHUB_REF_NAME" release-dist/*.tgz --generate-notes
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}

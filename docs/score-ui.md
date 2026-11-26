@@ -64,6 +64,7 @@ URL** in the existing notational `graphic_instance/@file_name`:
 ```xml
 <graphic_instance_group description="Digitized score">
   <graphic_instance position_in_group="1"
+      file_format="image_jpeg" encoding_format="image_jpeg" measurement_unit="pixels"
       file_name="https://images.example.org/iiif/score-page-1/info.json">
     <graphic_event event_ref="e1"
         upper_left_x="100" upper_left_y="200"
@@ -72,6 +73,7 @@ URL** in the existing notational `graphic_instance/@file_name`:
 </graphic_instance_group>
 ```
 
+Place this group inside `<notational>` and define `e1` in the Spine.
 `createPlayerProjection()` already resolves that URL relative to the XML.
 `createScoreView()`, the pager and the embedded player detect `info.json`,
 fetch its metadata and request the full image:

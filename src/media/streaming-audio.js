@@ -23,7 +23,7 @@ import { createLogger } from '../diagnostics/logger.js';
  * track rate, and mismatched context/decoder rates fail explicitly.
  *
  * PCM retained by the transport is capped by `bufferSeconds`; a packet may
- * not decode to more than half that capacity. Encoded input is limited by
+ * not contribute more than half that capacity after trimming. Encoded input is limited by
  * `maxPacketBytes`. No playback-rate changes, streaming groups, resampling or
  * pitch preservation are provided by this experimental contract.
  *
@@ -100,6 +100,7 @@ export class StreamingAudioPlayer extends EventTarget {
     this.bufferedFrames = 0;
     this.bufferedUntil = 0;
     this.generation = 0;
+    this.readyGeneration = -1;
     this.wantsPlay = false;
     this.eof = false;
     /** @type {AbortController | null} */
@@ -163,11 +164,13 @@ export class StreamingAudioPlayer extends EventTarget {
     if (this.decoder && this.decoder.state !== 'closed') this.decoder.close();
     this.decoder = null;
     this.wake();
-    this.node.port.postMessage({ type: 'reset', generation: this.generation, position: Math.round(this.position * this.context.sampleRate) });
+    this.node.port.postMessage({ type: 'reset', generation: this.generation,
+      position: Math.round(this.position * this.context.sampleRate), end: this.endFrame() });
     this.bufferedFrames = 0;
     this.bufferedUntil = this.position;
     this.eof = false;
   }
+  endFrame() { return Math.round(this.duration * this.context.sampleRate); }
   wake() { for (const resolve of this.waiters.splice(0)) resolve(); }
   freeze() {
     this.position = this.currentTime;
@@ -187,6 +190,11 @@ export class StreamingAudioPlayer extends EventTarget {
    * contextTime: number, status: 'playing' | 'buffering' | 'ended', message?: string}} data */
   onMessage(data) {
     if (data.generation !== this.generation || this.state === 'disposed') return;
+    if (data.type === 'reset') {
+      this.readyGeneration = data.generation;
+      this.wake();
+      return;
+    }
     if (data.type === 'error') { this.fail(new Error(data.message)); return; }
     this.bufferedFrames = Math.max(0, this.bufferedFrames - data.consumed);
     this.wake();
@@ -194,7 +202,9 @@ export class StreamingAudioPlayer extends EventTarget {
     this.position = Math.min(this.duration, data.position);
     this.anchor = data.contextTime;
     if (data.status === 'ended') {
+      this.position = this.duration;
       this.wantsPlay = false;
+      this.cancel();
       this.changeState('ended');
       this.emit('positionchange', { currentTime: this.position });
     } else if (data.status === 'buffering') {
@@ -205,6 +215,13 @@ export class StreamingAudioPlayer extends EventTarget {
   }
   /** @param {number} generation @param {AbortSignal} signal */
   async pump(generation, signal) {
+    while (this.readyGeneration !== generation) {
+      await new Promise((resolve) => this.waiters.push(() => resolve(undefined)));
+      if (generation !== this.generation) return;
+    }
+    const origin = this.position;
+    const target = Math.round(origin * this.context.sampleRate);
+    const end = this.endFrame();
     let produced = false;
     const decoder = new globalThis.AudioDecoder({
       output: (data) => {
@@ -213,21 +230,23 @@ export class StreamingAudioPlayer extends EventTarget {
           if (data.sampleRate !== this.context.sampleRate || data.numberOfChannels !== this.track.decoderConfig.numberOfChannels) {
             throw new Error('Decoded audio changed its sample rate or channels');
           }
-          if (data.numberOfFrames > this.capacity / 2 || this.bufferedFrames + data.numberOfFrames > this.capacity) {
+          const start = Math.round(data.timestamp * this.context.sampleRate / 1e6);
+          const first = Math.max(target, start);
+          const retained = Math.min(end, start + data.numberOfFrames) - first;
+          if (retained <= 0) return;
+          if (retained > this.capacity / 2 || this.bufferedFrames + retained > this.capacity) {
             throw new Error('Decoded PCM exceeds the configured buffer budget');
           }
           const planes = Array.from({ length: data.numberOfChannels }, (_, planeIndex) => {
-            const plane = new Float32Array(data.numberOfFrames);
-            data.copyTo(plane, { planeIndex, format: 'f32-planar' });
+            const plane = new Float32Array(retained);
+            data.copyTo(plane, { planeIndex, format: 'f32-planar', frameOffset: first - start, frameCount: retained });
             if (!plane.every(Number.isFinite)) throw new Error('Native audio decoder returned non-finite PCM samples');
             return plane;
           });
-          const start = Math.round(data.timestamp * this.context.sampleRate / 1e6);
-          const retained = Math.max(0, data.numberOfFrames - Math.max(0, Math.round(this.position * this.context.sampleRate) - start));
-          if (retained) produced = true;
+          produced = true;
           this.bufferedFrames += retained;
-          this.bufferedUntil = Math.max(this.bufferedUntil, (start + data.numberOfFrames) / this.context.sampleRate);
-          this.node.port.postMessage({ type: 'data', generation, start, planes }, planes.map((plane) => plane.buffer));
+          this.bufferedUntil = Math.max(this.bufferedUntil, (first + retained) / this.context.sampleRate);
+          this.node.port.postMessage({ type: 'data', generation, start: first, planes }, planes.map((plane) => plane.buffer));
           this.maybeStart();
         } catch (error) { this.fail(error); }
         finally { data.close(); }
@@ -240,7 +259,7 @@ export class StreamingAudioPlayer extends EventTarget {
     let iterator;
     try {
       let packets = 0;
-      iterator = this.track.chunks(this.position, signal)[Symbol.asyncIterator]();
+      iterator = this.track.chunks(origin, signal)[Symbol.asyncIterator]();
       while (generation === this.generation) {
         while (this.bufferedFrames > this.capacity / 2) {
           await new Promise((resolve) => this.waiters.push(() => resolve(undefined)));
@@ -257,13 +276,14 @@ export class StreamingAudioPlayer extends EventTarget {
         // Flush each audio packet to bound decoder-owned output independently
         // of the network reader. This first backend accepts key audio packets.
         await decoder.flush();
+        if (this.bufferedUntil >= end / this.context.sampleRate) break;
       }
       if (generation !== this.generation) return;
       if (!packets || !produced) throw new Error('Streaming source returned no audio at the requested position');
       decoder.close();
       this.decoder = null;
       this.eof = true;
-      this.node.port.postMessage({ type: 'end', generation, end: Math.round(this.duration * this.context.sampleRate) });
+      this.node.port.postMessage({ type: 'end', generation, end });
       this.maybeStart();
     } catch (error) { if (generation === this.generation) this.fail(error); }
     finally {

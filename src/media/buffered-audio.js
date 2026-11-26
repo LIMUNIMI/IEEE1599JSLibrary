@@ -394,6 +394,8 @@ export class BufferedAudioPlayer extends EventTarget {
     this.recovering = false;
     this.stopSources();
     this.context.removeEventListener('statechange', this.contextListener);
+    this.instances = [];
+    this.position = 0;
     this.changeState('disposed');
     if (this.ownsContext) await this.context.close();
   }

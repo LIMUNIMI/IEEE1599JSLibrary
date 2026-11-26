@@ -31,6 +31,7 @@ import { effectiveAttributes, IEEE1599ValidationError, validateTree, vocabularyO
  * @property {string | null} systemId System identifier (DTD URL). Never fetched.
  * @property {string | null} internalSubset Raw internal subset text, without brackets.
  * @property {string} source Exact declaration text, reused by the serializer.
+ * @property {number} [prologIndex] Number of prolog nodes before the declaration.
  */
 
 /**
@@ -241,25 +242,47 @@ export class IEEE1599Document {
 }
 
 /**
- * Extract the XML declaration and DOCTYPE from the source text, since DOM
- * implementations do not expose the internal subset.
+ * Scan only the prolog, skipping comments and processing instructions.
+ * Do not interpret strings in comments, quoted identifiers or CDATA as DTD
+ * markup. DOMParser still checks XML syntax.
  * @param {string} xml
  * @returns {{xmlDeclaration: string | null, doctype: IEEE1599Doctype | null}}
  */
 function readProlog(xml) {
   const declaration = /^\uFEFF?(<\?xml\s[\s\S]*?\?>)/.exec(xml);
-  const quoted = String.raw`("[^"]*"|'[^']*')`;
-  const pattern = new RegExp(String.raw`<!DOCTYPE\s+([^\s\[>]+)(?:\s+(?:PUBLIC\s+${quoted}\s+${quoted}|SYSTEM\s+${quoted}))?\s*(?:\[([\s\S]*?)\]\s*)?>`);
-  const match = pattern.exec(xml);
+  const tokens = /[ \t\r\n]+|<!--[\s\S]*?-->|<\?[\s\S]*?\?>/y;
+  tokens.lastIndex = declaration?.[0].length ?? (xml.startsWith('\uFEFF') ? 1 : 0);
+  let start = tokens.lastIndex;
+  while (tokens.exec(xml)) start = tokens.lastIndex;
+  const header = /<!DOCTYPE[ \t\r\n]+([^ \t\r\n[>]+)(?:[ \t\r\n]+(?:PUBLIC[ \t\r\n]+("[^"]*"|'[^']*')[ \t\r\n]+("[^"]*"|'[^']*')|SYSTEM[ \t\r\n]+("[^"]*"|'[^']*')))?[ \t\r\n]*/y;
+  header.lastIndex = start;
+  const match = header.exec(xml);
+  const xmlDeclaration = declaration?.[1] ?? null;
+  if (!match) return { xmlDeclaration, doctype: null };
+  let end = header.lastIndex;
+  let internalSubset = null;
+  if (xml[end] === '[') {
+    const subsetStart = ++end;
+    const chunk = /<!--[\s\S]*?-->|<\?[\s\S]*?\?>|"[^"]*"|'[^']*'|<!ENTITY\b|[\s\S]/y;
+    chunk.lastIndex = end;
+    for (let token; (token = chunk.exec(xml));) {
+      if (token[0] === '<!ENTITY') throw new Error('XML entity declarations are not supported');
+      if (token[0] !== ']') continue;
+      internalSubset = xml.slice(subsetStart, token.index);
+      end = chunk.lastIndex;
+      while (/[ \t\r\n]/.test(xml[end] ?? '')) end++;
+      break;
+    }
+  }
   const unquote = (/** @type {string | undefined} */ value) => (value === undefined ? null : value.slice(1, -1));
   return {
-    xmlDeclaration: declaration?.[1] ?? null,
-    doctype: match ? {
+    xmlDeclaration,
+    doctype: xml[end] === '>' ? {
       name: match[1],
       publicId: unquote(match[2]),
       systemId: unquote(match[3] ?? match[4]),
-      internalSubset: match[5] ?? null,
-      source: match[0]
+      internalSubset,
+      source: xml.slice(start, end + 1)
     } : null
   };
 }
@@ -326,9 +349,9 @@ function convertNode(node, parent) {
  */
 export function parseIEEE1599Document(xml, options = {}) {
   if (typeof DOMParser === 'undefined') throw new Error('DOMParser is not available');
-  if (/<!ENTITY\b/i.test(xml)) throw new Error('XML entity declarations are not supported');
+  const { xmlDeclaration, doctype } = readProlog(xml);
   const dom = new DOMParser().parseFromString(xml, 'application/xml');
-  if (dom.getElementsByTagName('parsererror').length || dom.documentElement?.nodeName !== IEEE1599_SCHEMA.root) {
+  if (dom.documentElement?.nodeName !== IEEE1599_SCHEMA.root || dom.getElementsByTagName('parsererror').length) {
     throw new Error('Malformed IEEE 1599 XML or invalid root element');
   }
   const root = convert(dom.documentElement, null);
@@ -339,13 +362,51 @@ export function parseIEEE1599Document(xml, options = {}) {
   let afterRoot = false;
   for (const child of Array.from(dom.childNodes)) {
     if (child === dom.documentElement) { afterRoot = true; continue; }
+    if (doctype && child === dom.doctype) { doctype.prologIndex = prolog.length; continue; }
     const node = convertNode(child, null);
     if (node && (node.type === 'comment' || node.type === 'processing-instruction')) (afterRoot ? epilog : prolog).push(node);
   }
-  const { xmlDeclaration, doctype } = readProlog(xml);
   const { issues, ids } = validateTree({ root, doctype });
   if ((options.strict ?? true) && issues.some((issue) => issue.severity === 'error')) throw new IEEE1599ValidationError(issues);
   return new IEEE1599Document({ root, doctype, xmlDeclaration, prolog, epilog, issues, ids, baseURL: options.baseURL ?? null });
+}
+
+/**
+ * Decode XML bytes using the BOM, HTTP charset, or XML declaration (in
+ * that order), defaulting to UTF-8. UTF-16 without a BOM can be identified
+ * from its opening `<?`. Decoding errors are reported, never replaced.
+ * @internal
+ * @param {ArrayBuffer} buffer
+ * @param {string | null} [contentType]
+ * @returns {string}
+ */
+export function decodeXML(buffer, contentType) {
+  const [a, b, c, d] = new Uint8Array(buffer, 0, Math.min(4, buffer.byteLength));
+  const bom = a === 0xef && b === 0xbb && c === 0xbf ? 'utf-8'
+    : a === 0xff && b === 0xfe ? 'utf-16le' : a === 0xfe && b === 0xff ? 'utf-16be' : undefined;
+  if ((a === 0 && b === 0 && c === 0xfe && d === 0xff) || (a === 0xff && b === 0xfe && c === 0 && d === 0)
+    || (a === 0 && b === 0 && c === 0 && d === 0x3c) || (a === 0x3c && b === 0 && c === 0 && d === 0)) {
+    throw new Error('UTF-32 XML is not supported');
+  }
+  const signature = a === 0 && b === 0x3c && c === 0 && d === 0x3f ? 'utf-16be'
+    : a === 0x3c && b === 0 && c === 0x3f && d === 0 ? 'utf-16le' : undefined;
+  const charset = /;\s*charset\s*=\s*(?:"([^"]+)"|([^;\s]+))/i.exec(contentType ?? '');
+  const httpEncoding = charset?.[1] ?? charset?.[2];
+  let prefix;
+  const bytes = new Uint8Array(buffer);
+  if (!bom && !httpEncoding && !signature && a === 0x3c && b === 0x3f && c === 0x78 && d === 0x6d
+    && bytes[4] === 0x6c && [9, 10, 13, 32].includes(bytes[5])) {
+    const end = bytes.indexOf(0x3f, 5);
+    if (end >= 0 && bytes[end + 1] === 0x3e) prefix = new globalThis.TextDecoder().decode(bytes.subarray(0, end + 2));
+  }
+  const declared = prefix?.match(/\bencoding[ \t\r\n]*=[ \t\r\n]*["']([^"']+)["']/)?.[1];
+  const encoding = bom ?? (httpEncoding?.toLowerCase() === 'utf-16' && signature ? signature : httpEncoding)
+    ?? signature ?? declared ?? 'utf-8';
+  try {
+    return new globalThis.TextDecoder(encoding, { fatal: true }).decode(buffer);
+  } catch (error) {
+    throw new Error(`Cannot decode IEEE 1599 XML as ${encoding}`, { cause: error });
+  }
 }
 
 /**
@@ -355,12 +416,14 @@ export function parseIEEE1599Document(xml, options = {}) {
  * @param {ParseDocumentOptions & {signal?: AbortSignal}} [options]
  * @returns {Promise<IEEE1599Document>}
  * @throws {Error} `IEEE 1599 fetch failed: HTTP <status>` for non-OK responses,
- *   plus every error of {@link parseIEEE1599Document}.
+ *   an XML decoding error for unsupported encodings or malformed bytes, or
+ *   any error of {@link parseIEEE1599Document}.
  */
 export async function loadIEEE1599Document(url, options = {}) {
   const response = await fetch(url, { signal: options.signal });
   if (!response.ok) throw new Error(`IEEE 1599 fetch failed: HTTP ${response.status}`);
-  return parseIEEE1599Document(await response.text(), { strict: options.strict, baseURL: options.baseURL ?? response.url });
+  return parseIEEE1599Document(decodeXML(await response.arrayBuffer(), response.headers.get('Content-Type')),
+    { strict: options.strict, baseURL: options.baseURL ?? response.url });
 }
 
 /** @param {string} value */
@@ -406,8 +469,13 @@ function writeNode(node, out) {
 export function serializeIEEE1599Document(doc) {
   /** @type {string[]} */
   const out = [doc.xmlDeclaration ?? '<?xml version="1.0" encoding="UTF-8"?>', '\n'];
-  if (doc.doctype) out.push(doc.doctype.source, '\n');
-  for (const node of doc.prolog) { writeNode(node, out); out.push('\n'); }
+  const doctypeIndex = doc.doctype?.prologIndex ?? 0;
+  for (const [index, node] of doc.prolog.entries()) {
+    if (doc.doctype && index === doctypeIndex) out.push(doc.doctype.source, '\n');
+    writeNode(node, out);
+    out.push('\n');
+  }
+  if (doc.doctype && doctypeIndex >= doc.prolog.length) out.push(doc.doctype.source, '\n');
   writeNode(doc.root, out);
   for (const node of doc.epilog) { out.push('\n'); writeNode(node, out); }
   out.push('\n');

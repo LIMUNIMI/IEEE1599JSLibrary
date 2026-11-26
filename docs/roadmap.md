@@ -15,17 +15,18 @@ Release artifacts and TypeScript declarations are generated, but no npm
 publication is enabled. Experimental single-track native-rate streaming,
 score pager/zoom/cursor, optional embedding and IIIF Image API sources are
 implemented; see [streaming](streaming.md) and [score UI](score-ui.md).
-Streaming groups/resampling, a library-owned video backend, strict
-recovery across every media backend, mobile device evidence and a complete
-release gate remain open.
+Streaming groups/resampling, a library-owned video backend, strict recovery
+across every media backend, mobile device evidence and workload benchmarks
+remain open.
 
 1. **Preserve requirements:** establish the agent entry point, brief,
    architecture/decision log and roadmap.
 2. **Media/browser feasibility:** build small native buffered audio,
    WebCodecs video, streaming audio/AudioWorklet and common-clock probes with
    synthetic or licensed fixtures. The initial CI probe covers generated WAV
-   decode and WebCodecs configuration queries in Chromium, Firefox and WebKit;
-   it does not yet decode synthetic video or establish Safari/iOS support.
+   decode and audio-clock progression, WebCodecs configuration queries, and
+   native H.264/AAC decoding of a synthetic cross-origin MP4 where available.
+   It does not establish Safari/iOS support.
    Verify the selected Mediabunny adapter for
    formats, seeks, ranges, bounded memory, worker support, maintenance and
    licensing.
@@ -61,8 +62,9 @@ not by `DOMParser`; a generated inventory gates coverage in `pnpm test`.
    event cursor, theme variables and opt-in player custom element are now
    available. IIIF Image API 2/3 images are supported as notational sources;
    other interoperability adapters are outside the approved scope.
-9. **Release gate:** CI now runs browser tests in Chromium, Firefox and WebKit
-   and stores per-engine capability evidence. Add real device checks and
+9. **Release gate:** Pages and tagged releases require browser checks in
+   Chromium, Firefox and WebKit and smoke tests of the site and package as
+   built. The Pages workflow stores per-engine capability evidence. Add real device checks and
    agreed workload benchmarks before publishing a support matrix or making
    mobile/codec guarantees.
 

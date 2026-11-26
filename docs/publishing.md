@@ -36,6 +36,13 @@ generated HTML. Keep the schema in sync through `pnpm run schema:generate`
 when the schema inputs change, and summarize user-visible changes in the
 [changelog](../CHANGELOG.md).
 
+Use `pnpm run test:artifacts` to build and serve the real site under a
+repository path, load the inspector sample, and verify the packed archive's
+exports, native AudioWorklet playback and exclusions without installing the
+optional peer.
+It uses Edge by default on Windows; to use another browser, install it with
+`pnpm exec playwright-core install chromium` and set `BROWSER=chromium`.
+
 Commit `pnpm-lock.yaml` when dependencies change. CI installs with
 `--frozen-lockfile` to reject manifest/lockfile drift. The Python HTTP server
 uses only the standard library; there are no pip dependencies to migrate.
@@ -55,12 +62,16 @@ repository, and access-controlled Pages requires GitHub Enterprise Cloud.
 On an eligible repository, choose **Settings → Pages → Build and deployment
 → GitHub Actions**, set the site visibility as intended, then add the
 repository's Actions variable `PAGES_DEPLOY_ENABLED` with the value `true`.
-Run the Documentation workflow on `main` or merge a change to `main`. The
-workflow environment reports the published URL. There is no generated
+Run the Documentation workflow on `main` or merge a change to `main`.
+Pages deployment and tagged releases require all three browser matrix jobs
+and the Chromium artifact smoke tests to pass. The Ubuntu Firefox jobs start
+PulseAudio with a null sink so the native audio clock has an output device.
+The workflow environment reports the published URL. There is no generated
 `gh-pages` branch to commit.
 
 The artifact includes generated docs, library browser modules and explicitly
-listed example source files. It never copies `examples/dmite/assets/`,
+listed example source files, plus the public synthetic XML used by the
+inspector. It never copies `examples/dmite/assets/`,
 `examples/la-catedral/local/`, `node_modules/`, or arbitrary files under
 `examples/`. La Catedral's setup guide is published, but its runnable example
 requires the local checkout. Do not add recordings, scores, or private XML to

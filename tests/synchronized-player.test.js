@@ -59,6 +59,7 @@ test('does not resume playback after a newer pause supersedes asynchronous primi
     }]
   });
   const starting = player.play();
+  await Promise.resolve();
   player.pause();
   finishSeek();
   await starting;
@@ -149,10 +150,67 @@ test('repairs a stale video presentation that completes after a seek', async () 
   });
   await player.play();
   const presenting = player.present();
-  await player.seek(5);
+  await Promise.resolve();
+  const seeking = player.seek(5);
   finishPresent();
   await presenting;
+  await seeking;
   assert.equal(calls.at(-1), 'seek:5');
+  await player.dispose();
+});
+
+test('seeking past the end while playing does not implicitly restart audio', async () => {
+  const audio = fakeAudio();
+  const seek = audio.seek.bind(audio);
+  audio.seek = (seconds) => {
+    seek(seconds);
+    if (audio.currentTime === audio.duration) audio.state = 'ended';
+  };
+  const player = createSynchronizedMediaPlayer({ audio });
+  await player.play();
+  await player.seek(15);
+  assert.equal(player.state, 'ended');
+  assert.equal(player.currentTime, 10);
+  assert.equal(audio.calls.filter((call) => call === 'play').length, 1);
+  await player.dispose();
+});
+
+test('a newer seek converges after an older view callback finishes', async () => {
+  const audio = fakeAudio();
+  let startOlder, finishOlder;
+  const olderStarted = new Promise((resolve) => { startOlder = resolve; });
+  let frame;
+  const player = createSynchronizedMediaPlayer({ audio, videos: [{
+    async seek(seconds) {
+      if (seconds === 2) await new Promise((resolve) => { finishOlder = resolve; startOlder(); });
+      frame = seconds;
+    },
+    async present() {}
+  }] });
+  const older = player.seek(2);
+  await olderStarted;
+  const newer = player.seek(7);
+  finishOlder();
+  await Promise.all([older, newer]);
+  assert.equal(frame, 7);
+  await player.dispose();
+});
+
+test('refill checks readiness again after presenting the frozen frame', async () => {
+  const audio = fakeAudio();
+  let stalled = true;
+  let presentations = 0;
+  let refills = 0;
+  const player = createSynchronizedMediaPlayer({ audio, videos: [{
+    async seek() {},
+    async present() { if (++presentations === 2) stalled = true; },
+    isBuffering() { return stalled; },
+    async whenReady() { assert.equal(audio.state, 'paused'); stalled = false; refills++; }
+  }] });
+  await player.play();
+  await player.present();
+  assert.equal(refills, 2);
+  assert.equal(audio.state, 'playing');
   await player.dispose();
 });
 
@@ -221,5 +279,17 @@ test('rechecks all video views when starvation moves to another view during refi
   await player.present();
   assert.deepEqual(refilled, [0, 1]);
   assert.equal(player.state, 'playing');
+  await player.dispose();
+});
+
+test('a false video-ready signal rejects without spinning or restarting audio', async () => {
+  const audio = fakeAudio();
+  const player = createSynchronizedMediaPlayer({ audio, videos: [{
+    seek() {}, present() {}, isBuffering: () => true, async whenReady() {}
+  }] });
+  await player.play();
+  await assert.rejects(player.present(), /reported readiness while still buffering/);
+  assert.equal(audio.state, 'paused');
+  assert.equal(player.buffering, false);
   await player.dispose();
 });

@@ -3,6 +3,8 @@
  * same-origin assets directory. Folder selections never make network requests.
  * @module examples/dmite/assets
  */
+import { decodeXML } from '../../src/model/document.js';
+
 const root = new URL('./assets/', import.meta.url);
 
 /**
@@ -77,10 +79,16 @@ export function createAssetSource(files) {
      * @returns {Promise<string>}
      */
     text(name, signal) {
-      return use(name, async (url) => {
-        const response = await fetch(url, { signal, redirect: 'error' });
+      return media(name, async (input) => {
+        signal.throwIfAborted();
+        if (typeof input !== 'string') {
+          const bytes = await input.arrayBuffer();
+          signal.throwIfAborted();
+          return decodeXML(bytes);
+        }
+        const response = await fetch(input, { signal, redirect: 'error' });
         if (!response.ok) throw new Error(`Could not load ${name}: HTTP ${response.status}`);
-        return response.text();
+        return decodeXML(await response.arrayBuffer(), response.headers.get('Content-Type'));
       });
     }
   };

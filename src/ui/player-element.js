@@ -72,6 +72,9 @@ export function defineIEEE1599Player({ name = 'ieee1599-player', registry = glob
       this.preparing = null;
       this.generation = 0;
       this.playGeneration = 0;
+      this.starting = false;
+      /** @type {import('../media/buffered-audio.js').PlayerState} */
+      this.publishedState = 'paused';
       this.frame = 0;
       this.resumeRef = '';
       this.select = /** @type {HTMLSelectElement} */ (this.root.querySelector('select'));
@@ -84,7 +87,7 @@ export function defineIEEE1599Player({ name = 'ieee1599-player', registry = glob
     get src() { return this.getAttribute('src') ?? ''; }
     /** @param {string} value */
     set src(value) { this.setAttribute('src', value); }
-    get state() { return this.audio?.state ?? 'paused'; }
+    get state() { return this.starting ? 'buffering' : this.audio?.state ?? 'paused'; }
     get currentTime() { return this.audio?.currentTime ?? 0; }
     get duration() { return this.audio?.duration ?? 0; }
 
@@ -102,6 +105,12 @@ export function defineIEEE1599Player({ name = 'ieee1599-player', registry = glob
     /** @param {string} type @param {unknown} detail */
     emit(type, detail) {
       this.dispatchEvent(new CustomEvent(type, { detail, bubbles: true, composed: true }));
+    }
+    publishState() {
+      const state = this.state;
+      if (state === this.publishedState) return;
+      this.publishedState = state;
+      this.emit('statechange', { state });
     }
     /** @param {unknown} error */
     report(error) {
@@ -137,7 +146,7 @@ export function defineIEEE1599Player({ name = 'ieee1599-player', registry = glob
       if (generation !== this.generation) return;
       const piece = createPlayerProjection(doc);
       const pages = piece.graphicInstances[0]?.pages ?? [];
-      if (!pages.length) throw new Error('The document has no score pages');
+      if (!pages.length) throw new Error('The document has no usable score pages (pixel coordinates required)');
       this.piece = piece;
       this.findPart('title').textContent = piece.metadata.mainTitle ?? piece.metadata.workTitle ?? 'Untitled';
       this.findPart('authors').textContent = piece.metadata.authors.map((author) => author.name).join(', ');
@@ -157,8 +166,11 @@ export function defineIEEE1599Player({ name = 'ieee1599-player', registry = glob
         }
       });
       if (tracks.length) this.controls = createTransportControls({ container: this.findPart('controls'), player: this });
-      this.findPart('status').textContent = !tracks.length ? 'Score only: no indexed audio recording'
-        : doc.valid ? '' : `Opened with ${doc.issues.length} validation finding(s)`;
+      this.findPart('status').textContent = [
+        !tracks.length ? 'Score only: no indexed audio recording in seconds' : '',
+        doc.valid ? '' : `Opened with ${doc.issues.length} validation finding(s)`,
+        ...piece.warnings.filter((warning) => !warning.startsWith('Unsupported XML element:'))
+      ].filter(Boolean).join('. ');
       this.emit('load', { document: doc, projection: piece });
     }
 
@@ -189,7 +201,8 @@ export function defineIEEE1599Player({ name = 'ieee1599-player', registry = glob
           for (const type of ['statechange', 'positionchange', 'error']) {
             audio.addEventListener(type, (event) => {
               if (this.audio !== audio) return;
-              this.emit(type, /** @type {CustomEvent} */ (event).detail);
+              if (type === 'statechange') this.publishState();
+              else this.emit(type, /** @type {CustomEvent} */ (event).detail);
               this.refresh();
             });
           }
@@ -210,11 +223,33 @@ export function defineIEEE1599Player({ name = 'ieee1599-player', registry = glob
     async play() {
       const command = ++this.playGeneration;
       this.findPart('error').textContent = '';
-      await this.prepareAudio();
-      if (command === this.playGeneration) await this.audio?.play();
+      if (!this.audio || this.preparing) {
+        this.starting = true;
+        this.publishState();
+      }
+      try {
+        await this.prepareAudio();
+        if (command !== this.playGeneration) return;
+        this.starting = false;
+        await this.audio?.play();
+      } catch (error) {
+        if (command !== this.playGeneration) return;
+        this.report(error);
+        throw error;
+      } finally {
+        if (command === this.playGeneration) {
+          this.starting = false;
+          this.publishState();
+        }
+      }
     }
     /** Pause the current recording. @returns {void} */
-    pause() { ++this.playGeneration; this.audio?.pause(); }
+    pause() {
+      ++this.playGeneration;
+      this.starting = false;
+      this.audio?.pause();
+      this.publishState();
+    }
     /** Seek the loaded recording in seconds. @param {number} seconds @returns {void} */
     seek(seconds) {
       if (!this.audio || this.preparing) throw new Error('Load a recording with play() before seeking');
@@ -230,6 +265,7 @@ export function defineIEEE1599Player({ name = 'ieee1599-player', registry = glob
     }
     async releaseAudio() {
       ++this.playGeneration;
+      this.starting = false;
       this.audioLoading?.abort();
       this.audioLoading = null;
       this.preparing = null;
@@ -238,9 +274,9 @@ export function defineIEEE1599Player({ name = 'ieee1599-player', registry = glob
       const audio = this.audio;
       this.audio = null;
       this.timeline = null;
-      await audio?.dispose();
-      this.emit('statechange', { state: 'paused' });
+      this.publishState();
       this.emit('positionchange', { currentTime: 0 });
+      await audio?.dispose();
     }
     /** Abort loading and release owned audio and view resources. @returns {Promise<void>} */
     async dispose() {
