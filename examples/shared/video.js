@@ -6,11 +6,12 @@
 import { openMediabunnyInput } from '../../src/adapters/mediabunny.js';
 
 /**
- * @param {import('mediabunny').InputAudioTrack | import('mediabunny').InputVideoTrack} track
+ * @param {object} track
  * @returns {track is import('mediabunny').InputVideoTrack}
  */
 function isVideoSourceTrack(track) {
-  return track.type === 'video' && 'getCodedWidth' in track && typeof track.getCodedWidth === 'function';
+  return 'type' in track && track.type === 'video' && 'getCodedWidth' in track
+    && typeof track.getCodedWidth === 'function';
 }
 
 /**
@@ -77,7 +78,13 @@ export async function openVideo(source, canvas, signal) {
 /**
  * Present frames sequentially with one decoded sample queued at most.
  * @param {Awaited<ReturnType<typeof openVideo>>} picture
- * @returns {{seek: (position: number) => Promise<void>, present: (position: number) => Promise<void>, dispose: () => void}}
+ * @returns {{
+ *   seek: (position: number) => Promise<void>,
+ *   present: (position: number) => Promise<void>,
+ *   isBuffering: (position: number) => boolean,
+ *   whenReady: () => Promise<void>,
+ *   dispose: () => void
+ * }}
  */
 export function createVideoPresenter(picture) {
   /** @typedef {import('mediabunny').VideoSample} Sample */
@@ -151,6 +158,16 @@ export function createVideoPresenter(picture) {
 
   return {
     seek,
+    /** @param {number} position */
+    isBuffering(position) {
+      return Boolean(run && !run.eof && !run.next && run.pending && position >= run.until - 0.00001);
+    },
+    async whenReady() {
+      const active = run;
+      if (!active) return;
+      await active.pending;
+      if (active.error !== undefined) throw active.error;
+    },
     /** @param {number} position */
     async present(position) {
       if (disposed) return;

@@ -1,7 +1,7 @@
 import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import { createServer } from 'node:http';
-import { chromium } from 'playwright-core';
+import { chromium, firefox, webkit } from 'playwright-core';
 
 const root = new URL('../../', import.meta.url);
 const allowed = ['src/', 'examples/', 'tests/fixtures/', 'schema/', 'node_modules/mediabunny/dist/'];
@@ -12,7 +12,7 @@ const types = {
 
 /**
  * Start a static server for the repository's browser-facing files and launch
- * the test browser (installed Edge, or BROWSER_EXECUTABLE_PATH).
+ * the test browser (Edge by default, or `BROWSER=chromium|firefox|webkit`).
  * Any other path, including `/`, returns `blankPage`.
  * @param {{blankPage?: string}} [options]
  */
@@ -37,9 +37,7 @@ export async function startBrowserHarness({ blankPage = '<!doctype html>' } = {}
   });
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   const base = `http://127.0.0.1:${server.address().port}/`;
-  const browser = await chromium.launch(process.env.BROWSER_EXECUTABLE_PATH
-    ? { executablePath: process.env.BROWSER_EXECUTABLE_PATH, headless: true }
-    : { channel: 'msedge', headless: true });
+  const browser = await launchTestBrowser();
   return {
     base,
     browser,
@@ -48,4 +46,23 @@ export async function startBrowserHarness({ blankPage = '<!doctype html>' } = {}
       await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
     }
   };
+}
+
+/** Launch the configured Playwright engine. @returns {Promise<import('playwright-core').Browser>} */
+export async function launchTestBrowser() {
+  const name = process.env.BROWSER ?? (process.env.BROWSER_EXECUTABLE_PATH ? 'chromium' : 'msedge');
+  if (name === 'msedge') {
+    return await chromium.launch({
+      ...(process.env.BROWSER_EXECUTABLE_PATH
+        ? { executablePath: process.env.BROWSER_EXECUTABLE_PATH }
+        : { channel: 'msedge' }),
+      headless: true
+    });
+  }
+  const engine = { chromium, firefox, webkit }[name];
+  if (!engine) throw new Error(`Unsupported BROWSER value: ${name}`);
+  return await engine.launch({
+    ...(process.env.BROWSER_EXECUTABLE_PATH ? { executablePath: process.env.BROWSER_EXECUTABLE_PATH } : {}),
+    headless: true
+  });
 }

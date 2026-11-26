@@ -4,14 +4,24 @@
  * @module ieee1599/ui/transport-controls
  */
 
-/** @typedef {import('../media/buffered-audio.js').BufferedAudioPlayer} BufferedAudioPlayer */
+/**
+ * @typedef {object} TransportPlayer
+ * @property {import('../media/buffered-audio.js').PlayerState} state
+ * @property {number} currentTime
+ * @property {number} duration
+ * @property {() => Promise<void>} play
+ * @property {() => void} pause
+ * @property {(seconds: number) => void | Promise<void>} seek
+ * @property {EventTarget['addEventListener']} addEventListener
+ * @property {EventTarget['removeEventListener']} removeEventListener
+ */
 
 /**
  * Render accessible transport controls bound to `player`. The controls
  * follow `statechange`/`positionchange` events and never own a clock.
  * @param {object} options
  * @param {HTMLElement} options.container Element the controls are appended to.
- * @param {BufferedAudioPlayer} options.player Player to drive.
+ * @param {TransportPlayer} options.player Player to drive.
  * @returns {{dispose: () => void}} Handle; `dispose()` removes the DOM and listeners
  *   without disposing the player.
  */
@@ -49,10 +59,22 @@ export function createTransportControls({ container, player }) {
       if (player.state === 'playing' || player.state === 'buffering') player.pause();
       else await player.play();
     } catch (reason) {
-      error.textContent = reason instanceof Error ? reason.message : String(reason);
+      reportError(reason);
     }
   };
-  const seek = () => player.seek(Number(position.value));
+  /** @param {unknown} reason */
+  const reportError = (reason) => {
+    error.textContent = reason instanceof Error ? reason.message : String(reason);
+  };
+  const seek = () => {
+    error.textContent = '';
+    try {
+      const result = player.seek(Number(position.value));
+      if (result && typeof result.then === 'function') result.catch(reportError);
+    } catch (reason) {
+      reportError(reason);
+    }
+  };
   const onError = () => { error.textContent = 'Playback failed'; };
   button.addEventListener('click', click);
   position.addEventListener('input', seek);

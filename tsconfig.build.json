@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "noEmit": false,
+    "outDir": "dist/types",
+    "rootDir": "src",
+    "types": []
+  },
+  "include": ["src/**/*.js"],
+  "exclude": ["src/adapters/mediabunny.js"]
+}

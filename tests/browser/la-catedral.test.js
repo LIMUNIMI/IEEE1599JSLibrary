@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { existsSync, createReadStream } from 'node:fs';
 import { readdir, stat } from 'node:fs/promises';
-import { chromium } from 'playwright-core';
+import { launchTestBrowser } from './harness.js';
 
 const root = new URL('../../', import.meta.url);
 const example = 'examples/la-catedral/';
@@ -44,9 +44,7 @@ before(async () => {
   });
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   base = `http://127.0.0.1:${server.address().port}/${example}index.html`;
-  browser = await chromium.launch(process.env.BROWSER_EXECUTABLE_PATH
-    ? { executablePath: process.env.BROWSER_EXECUTABLE_PATH, headless: true }
-    : { channel: 'msedge', headless: true });
+  browser = await launchTestBrowser();
 });
 
 after(async () => {

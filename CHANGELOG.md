@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- Add `createSynchronizedMediaPlayer()` to coordinate aligned video-view
+  callbacks with a required buffered-audio transport clock. The host primes
+  views before play/seek and calls `present()` from its render loop; views can
+  signal starvation to pause/rebuffer the audio group. It forwards transport
+  events and can bind to the framework-free transport controls. Video-only
+  clocks and general WebCodecs playback remain out of scope.
+- Run browser tests in Playwright Chromium, Firefox and WebKit, and upload
+  per-engine evidence from synthetic WAV decode and WebCodecs codec-configuration
+  probes. These tests do not establish mobile-device or real-file codec support.
+- Generate TypeScript declaration files and compile a consumer type fixture;
+  create a curated GitHub Release archive from matching `v<version>` tags.
+  npm publication remains disabled.
 - Add the [Build your own player](docs/build-your-player.md) guide for
   musicologists and other non-developers, with a commented starter player
   (`examples/starter/`) that follows the score, turns pages, seeks from score

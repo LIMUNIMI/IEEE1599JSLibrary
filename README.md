@@ -3,7 +3,8 @@
 A modernized, reusable JavaScript library for web players using IEEE 1599.
 It includes a complete, DTD-validated IEEE 1599 document model covering all
 six layers with first-class Spine and LOS, plus a player projection, timeline lookups,
-predecoded Web Audio, an optional read-only MP4/QuickTime demux adapter, and
+predecoded Web Audio, an audio-clock-led synchronized video-view controller,
+an optional read-only MP4/QuickTime demux adapter, and
 optional score/transport UI.
 
 **Have IEEE 1599 material and want a web player?** Start with
@@ -29,7 +30,9 @@ Node.js and a browser.
 Use [Node.js 26 LTS](https://nodejs.org/en/about/previous-releases) and the
 pnpm version pinned in `package.json`.
 Run `pnpm install --frozen-lockfile`, `pnpm run lint`, `pnpm run typecheck`, `pnpm test` and
-`pnpm run test:browser`. `pnpm run docs:build` generates the API reference,
+`pnpm run types:check`, and `pnpm run test:browser`. Browser CI covers
+Playwright Chromium, Firefox and WebKit; it does not claim support for physical
+mobile devices. `pnpm run docs:build` generates the API reference,
 guides and asset-free examples in `_site/`. `pnpm run serve` (or
 `node tools/serve.js`) serves the checkout on `http://127.0.0.1:8000/`.
 

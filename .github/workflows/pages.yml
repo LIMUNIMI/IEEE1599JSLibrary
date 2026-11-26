@@ -31,6 +31,7 @@ jobs:
       - run: pnpm run lint
       - run: pnpm run typecheck
       - run: pnpm test
+      - run: pnpm run types:check
       - run: pnpm run docs:build
       - uses: actions/upload-artifact@v7
         if: github.ref == 'refs/heads/main' && vars.PAGES_DEPLOY_ENABLED != 'true'
@@ -56,3 +57,37 @@ jobs:
     steps:
       - uses: actions/deploy-pages@v5
         id: deploy
+
+  browser-tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 26
+          package-manager-cache: false
+      - uses: pnpm/action-setup@v6
+        with:
+          cache: true
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright-core install --with-deps ${{ matrix.browser }}
+      - run: pnpm run test:browser:matrix
+        env:
+          BROWSER: ${{ matrix.browser }}
+          CAPABILITY_OUTPUT: ${{ runner.temp }}/browser-capabilities-${{ matrix.browser }}.json
+      - run: pnpm run test:browser
+        if: matrix.browser == 'chromium'
+        env:
+          BROWSER: chromium
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: browser-capabilities-${{ matrix.browser }}
+          path: ${{ runner.temp }}/browser-capabilities-${{ matrix.browser }}.json
+          if-no-files-found: warn

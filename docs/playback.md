@@ -40,6 +40,37 @@ when leaving the player. Abort outstanding loads with an `AbortSignal`.
 | Several recordings with already aligned time | Add them to the same player. Supply `offset` for delayed starts. All required sources share one clock; the last required source determines the end. |
 | Alternate performances of one score | Keep separate timelines. Find the current event in the old recording and resolve it on the new one; sparse mappings use the nearest earlier mapped event in Spine order, then the first later one. |
 
+### Aligned video views
+
+The library can coordinate presentation callbacks for video views that already
+share the audio timeline's zero and playback rate. It does not open a container
+or decode frames here; use a read-only adapter such as the optional
+Mediabunny adapter and provide a view with `seek(seconds)` and
+`present(seconds)`:
+
+```js
+import { createSynchronizedMediaPlayer } from '../src/index.js';
+
+const synchronized = createSynchronizedMediaPlayer({
+  audio: player,
+  videos: [{ seek: (time) => videoView.seek(time), present: (time) => videoView.present(time) }]
+});
+await synchronized.play();       // primes the video view before audio starts
+await synchronized.seek(12.5);   // remains playing if it was playing
+await synchronized.present();    // call from the host's animation/render loop
+```
+
+The audio player remains the required clock and determines duration/end.
+Views are disposed with the synchronized player. A view may also provide
+`isBuffering(seconds)` and `whenReady()`; while that view is starved, the
+player pauses the entire audio group, waits for recovery, presents the current
+frame and resumes unless a newer user command superseded it. The host owns the
+render loop. The synchronized player forwards `statechange`,
+`positionchange`, and `error` events, and its `state` reports video rebuffering,
+so `createTransportControls({ container, player: synchronized })` can bind to
+it directly. Video-only playback and per-video offsets/rates are not part of
+this initial contract.
+
 Use `setGain(id, gain)` (linear, `0` mutes), `setPan(id, pan)` (`-1` to `1`
 for mono or stereo), and `setRate(rate)` (speed and pitch change together).
 An injected AudioContext is host-owned. An internally created context is
@@ -93,7 +124,6 @@ with the application.
 
 The adapter reads only MP4 and QuickTime containers and exposes decoder
 configuration, browser decode support and encoded packet access. It does not
-decode, play, convert, encode or write media. Dispose the returned input when
-finished; aborting the supplied signal disposes it and cancels outstanding
-reads. Containers or codecs unsupported by Mediabunny or the browser fail
-explicitly; this adapter is not a general playback transport.
+convert, encode or write media. Dispose the returned input when finished;
+aborting the supplied signal disposes it and cancels outstanding reads.
+Containers or codecs unsupported by Mediabunny or the browser fail explicitly.

@@ -10,6 +10,10 @@
     "typecheck": "tsc --noEmit",
     "test": "pnpm run schema:check && node --test tests/*.test.js",
     "test:browser": "node --test tests/browser/*.test.js",
+    "test:browser:matrix": "node --test tests/browser/capabilities.test.js tests/browser/model.test.js tests/browser/ui.test.js tests/browser/xml.test.js",
+    "types:build": "node tools/types/clean.js && tsc --project tsconfig.build.json",
+    "types:check": "pnpm run types:build && tsc --project tsconfig.types-test.json",
+    "prepack": "pnpm run types:build",
     "docs:build": "node tools/docs/build.js",
     "schema:generate": "node tools/schema/generate.js",
     "schema:check": "node tools/schema/generate.js --check"
@@ -31,11 +35,35 @@
       "optional": true
     }
   },
+  "files": [
+    "src/",
+    "schema/ieee1599.dtd",
+    "dist/types/",
+    "docs/",
+    "examples/starter/index.html",
+    "examples/starter/main.js",
+    "schema/README.md",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
   "exports": {
-    ".": "./src/index.js",
-    "./adapters/mediabunny": "./src/adapters/mediabunny.js",
-    "./ui/score-view.js": "./src/ui/score-view.js",
-    "./ui/transport-controls.js": "./src/ui/transport-controls.js",
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./src/index.js"
+    },
+    "./adapters/mediabunny": {
+      "types": "./src/adapters/mediabunny.d.ts",
+      "import": "./src/adapters/mediabunny.js"
+    },
+    "./ui/score-view.js": {
+      "types": "./dist/types/ui/score-view.d.ts",
+      "import": "./src/ui/score-view.js"
+    },
+    "./ui/transport-controls.js": {
+      "types": "./dist/types/ui/transport-controls.d.ts",
+      "import": "./src/ui/transport-controls.js"
+    },
     "./schema/ieee1599.dtd": "./schema/ieee1599.dtd"
   }
 }

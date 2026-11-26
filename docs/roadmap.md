@@ -9,15 +9,21 @@ The requirements milestone is complete. The complete IEEE 1599 DTD data model
 milestone 4; see the [data model guide](data-model.md). Structural/Performance
 semantics remain open. Page navigation and One Note playback are implemented
 in the [DmITE example](../examples/dmite/README.md), not the packaged
-library (see the [DmITE comparison](dmite-comparison.md)). A subset of milestones 3-5
-and 8 is implemented; media feasibility, remaining contracts, streaming,
-WebCodecs video, mixed-media synchronization and the release gate remain open.
+library (see the [DmITE comparison](dmite-comparison.md)). The first
+audio-clock-led transport API and cross-browser CI probes are implemented.
+Release artifacts and TypeScript declarations are generated, but no npm
+publication is enabled. Streaming, a library-owned WebCodecs backend, strict
+recovery across every media backend, mobile device evidence and a complete
+release gate remain open.
 
 1. **Preserve requirements:** establish the agent entry point, brief,
    architecture/decision log and roadmap.
 2. **Media/browser feasibility:** build small native buffered audio,
    WebCodecs video, streaming audio/AudioWorklet and common-clock probes with
-   synthetic or licensed fixtures. Verify the selected Mediabunny adapter for
+   synthetic or licensed fixtures. The initial CI probe covers generated WAV
+   decode and WebCodecs configuration queries in Chromium, Firefox and WebKit;
+   it does not yet decode synthetic video or establish Safari/iOS support.
+   Verify the selected Mediabunny adapter for
    formats, seeks, ranges, bounded memory, worker support, maintenance and
    licensing.
    Record exact browser, device and codec evidence; Playwright WebKit is not
@@ -38,14 +44,18 @@ not by `DOMParser`; a generated inventory gates coverage in `pnpm test`.
 6. **Bounded media backends:** implement optional demux integration,
    backpressure, seek/generation handling, streaming audio and WebCodecs
    video. Test real decoding, timestamp conversion and resource cleanup.
-7. **Synchronized media:** coordinate concurrent audio/video and score
-   following, event-based switching and strict group rebuffering. Measure
-   timing against agreed application budgets.
+7. **Synchronized media:** the initial API coordinates an audio group with
+   aligned video views and can pause/rebuffer the group when a view reports
+   starvation. Extend it to cover a library-owned WebCodecs backend, score
+   following, event-based switching and measurable timing budgets after their
+   remaining contracts are resolved.
 8. **Optional presentation and migration:** framework-free score and
    accessible controls, canvas video views, small example and migration guide;
    preserve independent player and view lifecycles.
-9. **Release gate:** run cross-browser tests and agreed workload benchmarks;
-   publish measured capability matrix, prerequisites and limitations.
+9. **Release gate:** CI now runs browser tests in Chromium, Firefox and WebKit
+   and stores per-engine capability evidence. Add real device checks and
+   agreed workload benchmarks before publishing a support matrix or making
+   mobile/codec guarantees.
 
 ## Test and diagnostic strategy
 

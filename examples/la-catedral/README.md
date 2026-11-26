@@ -39,8 +39,9 @@ example-only dependency whose pinned ESM bundle is loaded from jsDelivr. It
 reads the MP4 and decodes with browser WebCodecs;
 the example retains a canvas image and one look-ahead frame outside the
 adapter's own decoder queue. The soundtrack is fully predecoded in Web
-Audio and supplies the clock. Video starvation detected during presentation
-pauses the soundtrack while waiting for the next frame. There is no HTML
+Audio and supplies the clock. The example uses the library's
+`createSynchronizedMediaPlayer()` to prime video before playback/seeks and to
+pause/rebuffer the audio group when the presenter runs out of frames. There is no HTML
 media fallback. This does not implement a general streaming transport, an
 audio-device-to-display latency guarantee, or a video-only clock.
 

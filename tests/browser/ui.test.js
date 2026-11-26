@@ -15,23 +15,30 @@ after(async () => {
   await harness?.close();
 });
 
-test('example initializes, seeks by score event, and completes playback', async () => {
+test('example initializes, seeks by score event, and completes playback', async (t) => {
   const page = await browser.newPage();
-  await page.goto(`${base}examples/index.html`);
-  await page.getByRole('button', { name: 'Initialize audio' }).click();
-  await page.getByRole('button', { name: 'Play' }).waitFor();
-  assert.match(await page.locator('#validation').textContent(), /^Valid against IEEE 1599 DTD 1\.0 \(0 findings\)\. Layers: general, logic, notational, audio\.$/);
-  assert.deepEqual(await page.locator('#events li').allTextContents(), [
-    'first: VTU 0, chord A4 (staff staff, measure 1)',
-    'second: VTU 512, chord E5 (staff staff, measure 1)'
-  ]);
-  await page.getByRole('button', { name: 'Seek to score event second' }).click();
-  assert.equal(await page.locator('#controls input').inputValue(), '0.5');
-  assert.equal(await page.locator('#now').textContent(), 'second: VTU 512, chord E5 (staff staff, measure 1)');
-  await page.getByRole('button', { name: 'Play' }).click();
-  await page.locator('#controls [role=status]').getByText('ended').waitFor();
-  assert.equal(await page.locator('#message').textContent(), '');
-  await page.close();
+  try {
+    await page.goto(`${base}examples/index.html`);
+    if (!await page.evaluate(() => typeof AudioContext === 'function')) {
+      t.skip('AudioContext is unavailable in this browser build');
+      return;
+    }
+    await page.getByRole('button', { name: 'Initialize audio' }).click();
+    await page.getByRole('button', { name: 'Play' }).waitFor();
+    assert.match(await page.locator('#validation').textContent(), /^Valid against IEEE 1599 DTD 1\.0 \(0 findings\)\. Layers: general, logic, notational, audio\.$/);
+    assert.deepEqual(await page.locator('#events li').allTextContents(), [
+      'first: VTU 0, chord A4 (staff staff, measure 1)',
+      'second: VTU 512, chord E5 (staff staff, measure 1)'
+    ]);
+    await page.getByRole('button', { name: 'Seek to score event second' }).click();
+    assert.equal(await page.locator('#controls input').inputValue(), '0.5');
+    assert.equal(await page.locator('#now').textContent(), 'second: VTU 512, chord E5 (staff staff, measure 1)');
+    await page.getByRole('button', { name: 'Play' }).click();
+    await page.locator('#controls [role=status]').getByText('ended').waitFor();
+    assert.equal(await page.locator('#message').textContent(), '');
+  } finally {
+    await page.close();
+  }
 });
 
 test('score views scale hit targets, highlight independently, and clean up', async () => {
@@ -90,5 +97,25 @@ test('transport controls invoke player commands and remove listeners on disposal
     return { playing, seek, paused, children: container.childElementCount };
   });
   assert.deepEqual(result, { playing: 'playing', seek: 3, paused: 'paused', children: 0 });
+  await page.close();
+});
+
+test('transport controls report rejected asynchronous seeks', async () => {
+  const page = await browser.newPage();
+  await page.goto(base);
+  await page.evaluate(async () => {
+    const { createTransportControls } = await import('/src/ui/transport-controls.js');
+    class Player extends EventTarget {
+      state = 'paused'; currentTime = 0; duration = 10;
+      async play() {}
+      pause() {}
+      async seek() { throw new Error('video is not ready'); }
+    }
+    const container = document.querySelector('#a');
+    createTransportControls({ container, player: new Player() });
+    const input = container.querySelector('input');
+    input.dispatchEvent(new Event('input'));
+  });
+  await page.getByRole('alert').getByText('video is not ready').waitFor();
   await page.close();
 });

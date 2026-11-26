@@ -20,19 +20,10 @@ test('decodes a synthetic WAV and plays multiple instances with native Web Audio
   await page.goto(base);
   const result = await page.evaluate(async () => {
     const { createBufferedAudioPlayer } = await import('/src/media/buffered-audio.js');
+    const { createSyntheticWav } = await import('/tests/fixtures/synthetic.js');
     const context = new AudioContext();
     const player = createBufferedAudioPlayer({ context });
-    const samples = 2400;
-    const bytes = new ArrayBuffer(44 + samples * 2);
-    const view = new DataView(bytes);
-    const write = (offset, text) => [...text].forEach((character, i) => view.setUint8(offset + i, character.charCodeAt(0)));
-    write(0, 'RIFF'); view.setUint32(4, 36 + samples * 2, true); write(8, 'WAVE');
-    write(12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true);
-    view.setUint16(22, 1, true); view.setUint32(24, 24000, true);
-    view.setUint32(28, 48000, true); view.setUint16(32, 2, true); view.setUint16(34, 16, true);
-    write(36, 'data'); view.setUint32(40, samples * 2, true);
-    for (let i = 0; i < samples; i++) view.setInt16(44 + i * 2, Math.sin(i / 10) * 10000, true);
-    const url = URL.createObjectURL(new Blob([bytes], { type: 'audio/wav' }));
+    const url = URL.createObjectURL(new Blob([createSyntheticWav()], { type: 'audio/wav' }));
     try {
       const buffer = await player.loadAudio(url);
       player.addAudio(buffer, { id: 'a' });

@@ -1,0 +1,42 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 26
+          package-manager-cache: false
+      - uses: pnpm/action-setup@v6
+        with:
+          cache: true
+      - run: pnpm install --frozen-lockfile
+      - run: node -e "if ('v' + require('./package.json').version !== process.env.GITHUB_REF_NAME) process.exit(1)"
+      - run: pnpm run lint
+      - run: pnpm run typecheck
+      - run: pnpm test
+      - run: pnpm run types:check
+      - run: pnpm run docs:build
+      - run: pnpm exec playwright-core install --with-deps chromium
+      - run: pnpm run test:browser
+        env:
+          BROWSER: chromium
+      - run: pnpm pack --pack-destination release-dist
+      - run: gh release create "$GITHUB_REF_NAME" release-dist/*.tgz --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}
