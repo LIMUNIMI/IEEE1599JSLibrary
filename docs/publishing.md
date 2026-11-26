@@ -51,13 +51,17 @@ Use uv if Python dependency tooling is needed in the future.
 ## GitHub Pages
 
 The [Documentation workflow](https://github.com/LIMUNIMI/IEEE1599JSLibrary/actions/workflows/pages.yml)
-validates and builds the site on pull requests and on `main`. By default,
-`main` uploads a `documentation-site` artifact instead of deploying it. To
-preview it, download it from the workflow run's **Artifacts** section,
-unzip it, and serve the extracted directory over localhost as above.
+validates and builds the site on pull requests and on `main`. The repository
+is public and the site is live at
+<https://limunimi.github.io/IEEE1599JSLibrary/>: the repository variable
+`PAGES_DEPLOY_ENABLED` is `true`, so each successful run on `main` deploys.
+Without that variable, `main` uploads a `documentation-site` artifact instead
+of deploying it. To preview it, download it from the workflow run's
+**Artifacts** section, unzip it, and serve the extracted directory over
+localhost as above.
 
-To deploy, first verify that the GitHub plan and organization policy allow
-the intended site visibility. GitHub Free cannot publish Pages from a private
+To set up deployment on a fork or a new repository, first verify that the
+GitHub plan and organization policy allow the intended site visibility. GitHub Free cannot publish Pages from a private
 repository, and access-controlled Pages requires GitHub Enterprise Cloud.
 On an eligible repository, choose **Settings → Pages → Build and deployment
 → GitHub Actions**, set the site visibility as intended, then add the
@@ -71,7 +75,8 @@ The workflow environment reports the published URL. There is no generated
 
 The artifact includes generated docs, library browser modules and explicitly
 listed example source files, plus the public synthetic XML used by the
-inspector. It never copies `examples/dmite/assets/`,
+inspector. It never copies `examples/assets/` (the local
+[test corpus](corpus-testing.md)), `examples/dmite/assets/`,
 `examples/la-catedral/local/`, `node_modules/`, or arbitrary files under
 `examples/`. La Catedral's setup guide is published, but its runnable example
 requires the local checkout. Do not add recordings, scores, or private XML to

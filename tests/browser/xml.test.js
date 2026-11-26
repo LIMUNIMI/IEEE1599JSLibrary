@@ -81,6 +81,28 @@ test('projects normalized references, optional offsets and only usable tracks an
   } finally { await page.close(); }
 });
 
+test('tolerates swapped rectangle corners, NULL offsets and a missing timing_type with warnings', async () => {
+  const page = await browser.newPage();
+  try {
+    await page.goto(base);
+    const result = await page.evaluate(async (source) => {
+      const { parseIEEE1599 } = await import('/src/xml/parse.js');
+      const swapped = source.replace('upper_left_x="0" upper_left_y="1" lower_right_x="20" lower_right_y="30"',
+        'upper_left_x="20" upper_left_y="30" lower_right_x="0" lower_right_y="1"')
+        .replace('<event id="a" timing="0" hpos="0"/>', '<event id="a" timing="NULL" hpos="Null"/>')
+        .replace('<track_indexing timing_type="seconds">', '<track_indexing>');
+      return parseIEEE1599(swapped, { baseURL: location.href });
+    }, xml);
+    assert.deepEqual(result.spine[0], { id: 'a', timing: null, hpos: null });
+    assert.deepEqual(result.audioTracks[0].events.map((/** @type {any} */ item) => item.time), [0, 1.25]);
+    assert.ok(result.warnings.includes('Missing timing_type on track_indexing; assumed seconds'));
+    const event = result.graphicInstances[0].pages.flatMap((/** @type {any} */ item) => item.events)
+      .find((/** @type {any} */ item) => item.eventRef === 'b');
+    assert.deepEqual({ x1: event.x1, y1: event.y1, x2: event.x2, y2: event.y2 }, { x1: 0, y1: 1, x2: 20, y2: 30 });
+    assert.ok(result.warnings.some((/** @type {string} */ warning) => warning.includes('swapped corners normalized: b')));
+  } finally { await page.close(); }
+});
+
 test('preserves legacy encoded text in both URL loaders and rejects malformed bytes', async () => {
   const page = await browser.newPage();
   const xml = '<?xml version="1.0" encoding="ISO-8859-1"?><ieee1599><general><description><main_title>\u00c9tude</main_title></description></general></ieee1599>';

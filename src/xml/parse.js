@@ -52,7 +52,7 @@ function token(element, name) {
 /** @param {IEEE1599Element} element @param {string} name @returns {number | null} */
 function spineOffset(element, name) {
   const value = element.attribute(name);
-  if (value === null || value.trim() === 'null') return null;
+  if (value === null || value.trim().toLowerCase() === 'null') return null;
   return numberAttribute(element, name);
 }
 
@@ -90,9 +90,12 @@ const inside = (element, name) => element.ancestors().some((ancestor) => ancesto
  * @param {import('../model/document.js').IEEE1599Document} doc Parsed document.
  * @returns {PlayerDocument}
  * @throws {Error} For missing/invalid values the player needs, duplicate spine
- *   IDs, references to unknown spine events, invalid rectangles or durations,
- *   and negative `seconds` track times. Pages in non-pixel units and
- *   non-`seconds` indexes are skipped with warnings.
+ *   IDs, references to unknown spine events, invalid durations, and negative
+ *   `seconds` track times. Pages in non-pixel units and non-`seconds` indexes
+ *   are skipped with warnings. Spine offsets of `null` in any case are read as
+ *   null. Rectangles with swapped corners are normalized and a
+ *   `track_indexing` without `timing_type` is read as seconds, both with
+ *   warnings.
  *
  * @example
  * const doc = await loadIEEE1599Document('score.xml');
@@ -162,12 +165,18 @@ export function createPlayerProjection(doc) {
         position: numberAttribute(page, 'position_in_group'),
         url: resolve(required(page, 'file_name')),
         events: page.descendants('graphic_event').map((event) => {
-          const x1 = numberAttribute(event, 'upper_left_x');
-          const y1 = numberAttribute(event, 'upper_left_y');
-          const x2 = numberAttribute(event, 'lower_right_x');
-          const y2 = numberAttribute(event, 'lower_right_y');
-          if (x2 < x1 || y2 < y1) throw new Error('Invalid graphic event rectangle');
-          return { eventRef: ref(event), x1, y1, x2, y2 };
+          const left = numberAttribute(event, 'upper_left_x');
+          const top = numberAttribute(event, 'upper_left_y');
+          const right = numberAttribute(event, 'lower_right_x');
+          const bottom = numberAttribute(event, 'lower_right_y');
+          if (right < left || bottom < top) {
+            warnings.add(`Graphic event rectangle with swapped corners normalized: ${ref(event)}`);
+          }
+          return {
+            eventRef: ref(event),
+            x1: Math.min(left, right), y1: Math.min(top, bottom),
+            x2: Math.max(left, right), y2: Math.max(top, bottom)
+          };
         })
       })).sort((a, b) => a.position - b.position)
     })).filter((group) => group.pages.length);
@@ -177,9 +186,11 @@ export function createPlayerProjection(doc) {
       format: source(track, 'file_format'),
       encoding: source(track, 'encoding_format'),
       events: track.descendants('track_indexing').map((index) => {
-        const timing = token(index, 'timing_type');
-        if (timing !== 'seconds') {
-          warnings.add(`Unsupported track timing type: ${timing}; use seconds for playback`);
+        const declared = index.attribute('timing_type')?.trim();
+        if (!declared) {
+          warnings.add('Missing timing_type on track_indexing; assumed seconds');
+        } else if (declared !== 'seconds') {
+          warnings.add(`Unsupported track timing type: ${declared}; use seconds for playback`);
           return [];
         }
         return index.descendants('track_event').map((event) => {

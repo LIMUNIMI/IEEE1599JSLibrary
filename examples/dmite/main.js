@@ -91,6 +91,7 @@ function mount(source, doc, params, signal) {
   let context;
   let resume = false;
   let resumeRef = '';
+  let resumeOccurrence = 0;
   let rate = 100;
   /** @type {number | undefined} */
   let noteEnd;
@@ -182,6 +183,7 @@ function mount(source, doc, params, signal) {
     if (active) {
       resume = active.player.state === 'playing' || active.player.state === 'buffering';
       resumeRef = active.timeline.eventsAt(active.player.currentTime).at(-1) ?? '';
+      resumeOccurrence = resumeRef ? active.timeline.occurrenceAt(resumeRef, active.player.currentTime) : 0;
     }
     pending?.abort();
     const request = new AbortController();
@@ -205,7 +207,7 @@ function mount(source, doc, params, signal) {
       const timeline = recordingTimeline(spineIds, track);
       player.addAudio(buffer, { id: 'recording' });
       player.setRate(rate / 100);
-      if (resumeRef) player.seek(timeline.resolve(resumeRef).time);
+      if (resumeRef) player.seek(timeline.resolve(resumeRef, resumeOccurrence).time);
       player.addEventListener('error', (event) => {
         if (active?.player === loadingPlayer && event instanceof CustomEvent) report(event.detail.error);
       }, { signal: request.signal });
@@ -240,8 +242,9 @@ function mount(source, doc, params, signal) {
     if (!active) return 0;
     const ref = active.timeline.eventsAt(seconds).at(-1);
     if (!ref) return 0;
-    const audioAnchor = active.timeline.resolve(ref).time;
-    const videoAnchor = videoTimeline.resolve(ref).time;
+    const occurrence = active.timeline.occurrenceAt(ref, seconds);
+    const audioAnchor = active.timeline.resolve(ref, occurrence).time;
+    const videoAnchor = videoTimeline.resolve(ref, occurrence).time;
     return Math.max(0, videoAnchor + seconds - audioAnchor);
   }
 

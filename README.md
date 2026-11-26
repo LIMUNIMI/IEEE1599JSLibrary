@@ -26,6 +26,7 @@ Node.js and a browser.
 - [Roadmap and test strategy](docs/roadmap.md)
 - [Early migration guide](docs/migration.md)
 - [Capability evidence and limitations](docs/capabilities.md)
+- [Test against a local IEEE 1599 corpus](docs/corpus-testing.md)
 - [Build and publish the documentation](docs/publishing.md)
 - [Changelog](CHANGELOG.md)
 - [Agent entry point](AGENTS.md)

@@ -1,7 +1,7 @@
 import js from '@eslint/js';
 
 export default [
-  { ignores: ['_site/', 'examples/dmite/assets/'] },
+  { ignores: ['_site/', 'examples/dmite/assets/', 'examples/assets/', 'corpus-report/'] },
   js.configs.recommended,
   {
     files: ['**/*.js'],
@@ -13,6 +13,8 @@ export default [
         AudioWorkletNode: 'readonly',
         EncodedAudioChunk: 'readonly',
         Blob: 'readonly',
+        Buffer: 'readonly',
+        createImageBitmap: 'readonly',
         clearTimeout: 'readonly',
         cancelAnimationFrame: 'readonly',
         console: 'readonly',

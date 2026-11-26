@@ -77,9 +77,11 @@ export function defineIEEE1599Player({ name = 'ieee1599-player', registry = glob
       this.publishedState = 'paused';
       this.frame = 0;
       this.resumeRef = '';
+      this.resumeOccurrence = 0;
       this.select = /** @type {HTMLSelectElement} */ (this.root.querySelector('select'));
       this.select.addEventListener('change', () => {
         this.resumeRef = this.timeline?.eventsAt(this.currentTime)[0] ?? '';
+        this.resumeOccurrence = this.resumeRef ? this.timeline?.occurrenceAt(this.resumeRef, this.currentTime) ?? 0 : 0;
         this.releaseAudio().catch((error) => this.report(error));
       });
     }
@@ -197,7 +199,7 @@ export function defineIEEE1599Player({ name = 'ieee1599-player', registry = glob
           audio.addAudio(await audio.loadAudio(track.url, { signal: loading.signal }), { id: 'recording' });
           loading.signal.throwIfAborted();
           this.timeline = createTimeline(piece.spine.map((event) => event.id), track.events);
-          if (this.resumeRef) audio.seek(this.timeline.resolve(this.resumeRef).time);
+          if (this.resumeRef) audio.seek(this.timeline.resolve(this.resumeRef, this.resumeOccurrence).time);
           for (const type of ['statechange', 'positionchange', 'error']) {
             audio.addEventListener(type, (event) => {
               if (this.audio !== audio) return;

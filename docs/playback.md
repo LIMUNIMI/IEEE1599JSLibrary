@@ -40,8 +40,21 @@ The projection only uses track indexes in seconds and score rectangles in
 pixels. Other indexes and pages remain in the full document model; the
 projection skips them and records `warnings`. Legacy pages with no unit are
 interpreted as pixels by the lenient projection, but strict DTD validation
-requires that attribute. Missing offsets and explicit `null` values are both
-treated as absent; tokenized Spine references are normalized as in the model.
+requires that attribute. Missing offsets and explicit `null` values (in any
+case) are both treated as absent; tokenized Spine references are normalized as
+in the model. Legacy `track_indexing` elements without the DTD-required
+`timing_type` are read as seconds, and rectangles with swapped corners are
+normalized; both add a warning.
+
+### Repeats
+
+A recording may map one Spine event to several times, for example a
+repeated section. `createTimeline` keeps every distinct time in order and
+collapses exact duplicates. `resolve(id)` returns the first occurrence, and
+`resolve(id, occurrence)` a later one. When switching performances, call
+`occurrenceAt(id, currentTime)` on the old timeline and pass that occurrence
+to the new one, so a listener in the second repeat stays in the second repeat.
+If the new recording has fewer occurrences, the last one is used.
 
 ## Groups and alternate performances
 

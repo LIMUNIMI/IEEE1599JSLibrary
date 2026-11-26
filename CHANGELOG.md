@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+- Add `pnpm run test:corpus`, which checks a local, git-ignored corpus of
+  IEEE 1599 documents in a real browser. It checks DTD validity, round-trips,
+  player projection and timelines, and whether referenced images, audio and
+  video exist and can be decoded. It fetches only files named by `file_name`
+  and writes a private report to `corpus-report/`.
+- Normalize graphic event rectangles with swapped corners, with a projection
+  warning, instead of rejecting the whole document.
+- Read `hpos`/`timing` values of `NULL` in any case as absent, and read a
+  `track_indexing` without `timing_type` as seconds, with a warning, as legacy
+  players did.
+- Support repeated sections. A timeline may map one Spine event to several
+  times instead of throwing "Duplicate track event"; exact duplicates are
+  collapsed. `resolve(id, occurrence)` returns `occurrence`, and the new
+  `occurrenceAt(id, time)` lets players and the DmITE example keep the
+  current repeat when switching recordings.
+- The corpus checker names the real format of mislabelled images (for example
+  TIFF data in a `.jpg`) and flags audio too large to decode whole.
+- Document the live GitHub Pages site and ignore `examples/assets/`.
+
 - Fix synchronized seek and refill races, including a seek to the end that
   previously restarted playback. Clear decoded buffers on disposal and
   bound streaming PCM transfers after preroll trimming. Streaming no longer
