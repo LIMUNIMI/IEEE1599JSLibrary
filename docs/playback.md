@@ -32,6 +32,10 @@ but never use them as the playback clock. Listen for `statechange`,
 are not a continuous media clock. Dispose the view and `await player.dispose()`
 when leaving the player. Abort outstanding loads with an `AbortSignal`.
 
+For long recordings, the experimental [streaming API](streaming.md) offers a
+bounded single-track native-rate backend. For paging, zoom, keyboard access,
+IIIF image sources or an embeddable player, see the [score UI guide](score-ui.md).
+
 ## Groups and alternate performances
 
 | Scenario | Approach |

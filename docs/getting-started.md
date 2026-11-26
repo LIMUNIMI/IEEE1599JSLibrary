@@ -16,7 +16,9 @@ player for your own IEEE 1599 material rather than an API tour, follow
 | Metadata, score images and timed tracks for a player | `loadIEEE1599(url)`, or `createPlayerProjection(doc)` when you already have the full model. |
 | Look up events at a recording time or switch performances by score location | `createTimeline(spineIds, track.events)`. |
 | Build an audio player | `createBufferedAudioPlayer()` and the [playback guide](playback.md). |
+| Stream a long recording with native decoding and bounded PCM | Experimental `createStreamingAudioPlayer()` and the [streaming guide](streaming.md). |
 | Show score rectangles or transport controls | `createScoreView()` and `createTransportControls()` from `src/ui/`. |
+| Page/zoom/follow scores, use IIIF images, or embed a player | `createScorePager()`, `defineIEEE1599Player()` and the [score UI guide](score-ui.md). |
 
 The model covers all six DTD layers. That does not imply playback, synthesis
 or rendering of every layer; see [operational support](capabilities.md#operational-support).
@@ -38,6 +40,10 @@ server, not from `file://`:
   [Build your own player](build-your-player.md).
 - [Document inspector](../examples/inspector/index.html): inspect a local XML
   document, findings and event links, without loading recordings.
+- [Embeddable player](../examples/embed/index.html): optional custom element
+  for your own IEEE 1599 document, normal/IIIF score images and buffered audio.
+- [Streaming probe](../examples/streaming/index.html): bounded native
+  AudioDecoder/AudioWorklet playback with generated PCM packets.
 - [DmITE](../examples/dmite/README.md): choose a private folder with XML, WAV
   recordings and score images; no upload needed.
 - [La Catedral](../examples/la-catedral/README.md): audio and example-only

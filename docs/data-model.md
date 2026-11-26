@@ -93,6 +93,12 @@ example, enumerated attributes become string unions.
   content (see below).
 - `resolveURL(path)`, which resolves `file_name` values against `baseURL`.
 
+An IIIF Image API `info.json` URL is an ordinary `graphic_instance/@file_name`
+in the notational layer; it needs no new DTD attribute or model extension.
+The [optional score UI](score-ui.md#ieee-1599-images-from-an-iiif-server) resolves
+the image service and retains full-image source coordinates. Model parsing
+itself does not make IIIF network requests.
+
 | Layer | Contents (see the [reference](schema-reference.md#elements-by-layer)) |
 | --- | --- |
 | General | Titles, authors, numbers, dates, genres, related files, analog media and notes. |

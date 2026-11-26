@@ -180,3 +180,46 @@ test('rejects invalid time and incompatible views', async () => {
   await assert.rejects(player.seek(Number.NaN), /Invalid seek position/);
   await player.dispose();
 });
+
+test('awaits an asynchronous audio seek before priming video and resuming', async () => {
+  const audio = fakeAudio();
+  const seek = audio.seek.bind(audio);
+  let finishSeek;
+  audio.seek = async (seconds) => {
+    await new Promise((resolve) => { finishSeek = resolve; });
+    seek(seconds);
+  };
+  const positions = [];
+  const player = createSynchronizedMediaPlayer({ audio, videos: [{
+    async seek(seconds) { positions.push(seconds); }, async present() {}
+  }] });
+  await player.play();
+  const seeking = player.seek(6);
+  assert.equal(audio.state, 'paused');
+  assert.deepEqual(positions, [0]);
+  finishSeek();
+  await seeking;
+  assert.equal(audio.state, 'playing');
+  assert.deepEqual(positions, [0, 6]);
+  await player.dispose();
+});
+
+test('rechecks all video views when starvation moves to another view during refill', async () => {
+  const audio = fakeAudio();
+  const waiting = [true, false];
+  const refilled = [];
+  const player = createSynchronizedMediaPlayer({ audio, videos: [0, 1].map((index) => ({
+    async seek() {}, async present() {},
+    isBuffering() { return waiting[index]; },
+    async whenReady() {
+      waiting[index] = false;
+      if (index === 0) waiting[1] = true;
+      refilled.push(index);
+    }
+  })) });
+  await player.play();
+  await player.present();
+  assert.deepEqual(refilled, [0, 1]);
+  assert.equal(player.state, 'playing');
+  await player.dispose();
+});

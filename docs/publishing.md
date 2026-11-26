@@ -65,3 +65,6 @@ listed example source files. It never copies `examples/dmite/assets/`,
 `examples/`. La Catedral's setup guide is published, but its runnable example
 requires the local checkout. Do not add recordings, scores, or private XML to
 the publication list. The DmITE folder picker works without hosting those files.
+The embedding and synthetic-streaming examples are explicitly allowlisted.
+They contain source code only; IIIF images and user audio are fetched at
+runtime from user-supplied locations, never included by the docs build.

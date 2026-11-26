@@ -42,7 +42,7 @@ keeps such undeclared attributes in `rawAttributes` and reports them as
 | `MXContent` and `MXMedia`, HTML `<audio>` and `<video>` | Not reused, because playback must use Web Audio and WebCodecs only. Buffered audio uses `createBufferedAudioPlayer()`. Video exists only in the La Catedral example adapter. |
 | `MXContentWebAudio` and `WebAudioManager` | Superseded by the buffered player: shared transport, gain, pan, rate, multiple instances, group ending and diagnostics. |
 | `SyncManager` and `VideoSyncManager`, which correct drift with HTML media seeks | `createSynchronizedMediaPlayer()` coordinates aligned video-view callbacks from a buffered Web Audio clock. A general WebCodecs backend, independent offsets/rates and strict mixed-media rebuffering remain on the [roadmap](roadmap.md). |
-| `MXGraphics` canvas score: highlight, click, page navigation, one-note mode | `createScoreView()` covers highlight and click-to-seek. DmITE and La Catedral share an example canvas renderer; the DmITE example adds page navigation and One Note. Those controls are not packaged library features. |
+| `MXGraphics` canvas score: highlight, click, page navigation, one-note mode | `createScoreView()` and `createScorePager()` cover highlight, click-to-seek, page navigation, zoom, event cursor and IIIF sources. DmITE and La Catedral retain their example canvas renderer; One Note remains example-only. |
 | `MXLOS` current-note text for a selected voice | Data is available through `doc.los`; the examples show measure and pitches. There is no packaged widget. |
 | `MXSeekbar` | Both the optional transport controls and the DmITE example include a seek slider. |
 | `Track.searchByTime`, `trackEventsByRef` | `createTimeline()` with `eventsAt(time)` and `resolve(eventRef)`. |
@@ -54,3 +54,8 @@ listening panels. The selected WAV is fully decoded before playback; angle or
 instrument changes switch by score event. Synchronized MP4 panels are not
 implemented in the dependency-free example, and the package does not provide
 voice filtering or general mixed-media transport. See the [roadmap](roadmap.md).
+
+The optional [embedded player](score-ui.md#an-embeddable-player) packages the
+common score/buffered-audio workflow without DmITE-specific instrument panels.
+The experimental [streaming API](streaming.md) is a separate single-track
+backend; it does not change DmITE's predecoded-audio workflow.

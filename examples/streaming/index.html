@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <title>Bounded native streaming probe</title>
+</head>
+<body>
+  <h1>Bounded native streaming probe</h1>
+  <p>Generates ten seconds of synthetic PCM in small packets, decoded through
+    AudioDecoder and played through an AudioWorklet. No media file, encoding,
+    HTML playback element or third-party dependency is used.</p>
+  <button id="initialize">Initialize streaming</button>
+  <div id="controls"></div>
+  <p id="status" role="status"></p>
+  <p id="error" role="alert"></p>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>

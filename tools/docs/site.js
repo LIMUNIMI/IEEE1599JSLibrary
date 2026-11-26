@@ -9,6 +9,8 @@ export const EXAMPLE_FILES = [
   'examples/index.html', 'examples/main.js', 'examples/score.svg',
   'examples/inspector/index.html', 'examples/inspector/main.js',
   'examples/starter/index.html', 'examples/starter/main.js',
+  'examples/embed/index.html', 'examples/embed/main.js',
+  'examples/streaming/index.html', 'examples/streaming/main.js',
   'examples/shared/score.js', 'examples/shared/video.js',
   'examples/dmite/index.html', 'examples/dmite/style.css',
   'examples/dmite/main.js', 'examples/dmite/assets.js', 'examples/dmite/model.js'

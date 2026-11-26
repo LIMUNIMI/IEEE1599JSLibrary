@@ -12,7 +12,10 @@ in the [DmITE example](../examples/dmite/README.md), not the packaged
 library (see the [DmITE comparison](dmite-comparison.md)). The first
 audio-clock-led transport API and cross-browser CI probes are implemented.
 Release artifacts and TypeScript declarations are generated, but no npm
-publication is enabled. Streaming, a library-owned WebCodecs backend, strict
+publication is enabled. Experimental single-track native-rate streaming,
+score pager/zoom/cursor, optional embedding and IIIF Image API sources are
+implemented; see [streaming](streaming.md) and [score UI](score-ui.md).
+Streaming groups/resampling, a library-owned video backend, strict
 recovery across every media backend, mobile device evidence and a complete
 release gate remain open.
 
@@ -43,7 +46,10 @@ not by `DOMParser`; a generated inventory gates coverage in `pnpm test`.
    Test actual browser decoding, scheduling, activation and command races.
 6. **Bounded media backends:** implement optional demux integration,
    backpressure, seek/generation handling, streaming audio and WebCodecs
-   video. Test real decoding, timestamp conversion and resource cleanup.
+   video. The experimental single-track audio backend now tests native PCM
+   decoding, bounded queues, seek/cancellation, starvation/recovery and cleanup.
+   Compressed-file streaming, resampling, variable rates, aligned streaming
+   groups and real-device budgets remain open.
 7. **Synchronized media:** the initial API coordinates an audio group with
    aligned video views and can pause/rebuffer the group when a view reports
    starvation. Extend it to cover a library-owned WebCodecs backend, score
@@ -51,7 +57,10 @@ not by `DOMParser`; a generated inventory gates coverage in `pnpm test`.
    remaining contracts are resolved.
 8. **Optional presentation and migration:** framework-free score and
    accessible controls, canvas video views, small example and migration guide;
-   preserve independent player and view lifecycles.
+   preserve independent player and view lifecycles. The score pager, zoom,
+   event cursor, theme variables and opt-in player custom element are now
+   available. IIIF Image API 2/3 images are supported as notational sources;
+   other interoperability adapters are outside the approved scope.
 9. **Release gate:** CI now runs browser tests in Chromium, Firefox and WebKit
    and stores per-engine capability evidence. Add real device checks and
    agreed workload benchmarks before publishing a support matrix or making

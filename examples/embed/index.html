@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <title>Embeddable IEEE 1599 player</title>
+  <style>
+    body { font: 1rem system-ui; max-width: 70rem; margin: 2rem auto; padding: 1rem; }
+    ieee1599-player { --ieee1599-highlight-color: #34d39966; --ieee1599-cursor-color: #047857; }
+  </style>
+</head>
+<body>
+  <h1>Embeddable IEEE 1599 player</h1>
+  <p>No assets are included. Enter the URL of your IEEE 1599 document.
+    Graphical instances may reference normal images or IIIF Image API <code>info.json</code> URLs.</p>
+  <form>
+    <label>IEEE 1599 document <input name="document" required value="../starter/materials/piece.xml"></label>
+    <button>Open</button>
+  </form>
+  <ieee1599-player></ieee1599-player>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>

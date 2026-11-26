@@ -23,5 +23,6 @@ export { IEEE1599_SCHEMA } from './schema/ieee1599-schema.js';
 export { createPlayerProjection, loadIEEE1599, parseIEEE1599 } from './xml/parse.js';
 export { createTimeline } from './core/timeline.js';
 export { BufferedAudioPlayer, createBufferedAudioPlayer } from './media/buffered-audio.js';
+export { createStreamingAudioPlayer } from './media/streaming-audio.js';
 export { createSynchronizedMediaPlayer } from './media/synchronized-player.js';
 export { createLogger } from './diagnostics/logger.js';

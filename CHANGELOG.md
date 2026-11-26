@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+- Add experimental bounded single-track native AudioDecoder/AudioWorklet
+  streaming, with transferable PCM, backpressure, seek/preroll, starvation
+  recovery and explicit unsupported-rate/codec errors. No streaming resampler,
+  rate changes, audio groups or HTML playback fallback are introduced.
+- Add `createScorePager()` with page controls, zoom/scroll, event cursor,
+  theme variables and roving keyboard focus. Preserve `createScoreView()`
+  with additional readiness and image-error reporting.
+- Support IIIF Image API 2/3 `info.json` sources in notational
+  `graphic_instance/@file_name`, preserving original image-pixel event
+  coordinates. No DTD extension, Presentation API or other notation adapter.
+- Add explicit `defineIEEE1599Player()` registration for an isolated
+  `<ieee1599-player>` component with lazy buffered audio, score navigation,
+  load/transport events and cleanup on disconnect, plus embedding and
+  synthetic-streaming examples and guides.
 - Add `createSynchronizedMediaPlayer()` to coordinate aligned video-view
   callbacks with a required buffered-audio transport clock. The host primes
   views before play/seek and calls `present()` from its render loop; views can

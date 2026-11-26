@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "pnpm run schema:check && node --test tests/*.test.js",
     "test:browser": "node --test tests/browser/*.test.js",
-    "test:browser:matrix": "node --test tests/browser/capabilities.test.js tests/browser/model.test.js tests/browser/ui.test.js tests/browser/xml.test.js",
+    "test:browser:matrix": "node --test tests/browser/capabilities.test.js tests/browser/model.test.js tests/browser/score-ui.test.js tests/browser/streaming.test.js tests/browser/ui.test.js tests/browser/xml.test.js",
     "types:build": "node tools/types/clean.js && tsc --project tsconfig.build.json",
     "types:check": "pnpm run types:build && tsc --project tsconfig.types-test.json",
     "prepack": "pnpm run types:build",
@@ -42,6 +42,10 @@
     "docs/",
     "examples/starter/index.html",
     "examples/starter/main.js",
+    "examples/embed/index.html",
+    "examples/embed/main.js",
+    "examples/streaming/index.html",
+    "examples/streaming/main.js",
     "schema/README.md",
     "README.md",
     "CHANGELOG.md",
@@ -63,6 +67,18 @@
     "./ui/transport-controls.js": {
       "types": "./dist/types/ui/transport-controls.d.ts",
       "import": "./src/ui/transport-controls.js"
+    },
+    "./ui/score-pager.js": {
+      "types": "./dist/types/ui/score-pager.d.ts",
+      "import": "./src/ui/score-pager.js"
+    },
+    "./ui/player-element.js": {
+      "types": "./dist/types/ui/player-element.d.ts",
+      "import": "./src/ui/player-element.js"
+    },
+    "./adapters/iiif": {
+      "types": "./dist/types/adapters/iiif.d.ts",
+      "import": "./src/adapters/iiif.js"
     },
     "./schema/ieee1599.dtd": "./schema/ieee1599.dtd"
   }

@@ -1,5 +1,18 @@
 /**
- * Audio-clock-led synchronization for a buffered audio group and video views.
+ * @typedef {object} AudioTransport
+ * @property {number} currentTime
+ * @property {number} duration
+ * @property {import('./buffered-audio.js').PlayerState} state
+ * @property {() => Promise<void>} play
+ * @property {() => void} pause
+ * @property {(seconds: number) => void | Promise<void>} seek
+ * @property {() => Promise<void>} dispose
+ * @property {EventTarget['addEventListener']} addEventListener
+ * @property {EventTarget['removeEventListener']} removeEventListener
+ */
+
+/**
+ * Audio-clock-led synchronization for an audio transport and video views.
  *
  * Audio is the required transport clock. Video views follow its position and
  * do not extend the audio group's duration. This first contract does not
@@ -20,7 +33,7 @@
 /**
  * Options for {@link createSynchronizedMediaPlayer}.
  * @typedef {object} SynchronizedMediaPlayerOptions
- * @property {import('./buffered-audio.js').BufferedAudioPlayer} audio Required audio group and clock.
+ * @property {AudioTransport} audio Required buffered group or single streaming clock.
  * @property {readonly SynchronizedVideo[]} [videos] Video views aligned to the same zero and rate.
  */
 
@@ -123,8 +136,9 @@ export function createSynchronizedMediaPlayer({ audio, videos = [] }) {
       buffering = false;
       publishState();
       wantsPlay = true;
-      if (audio.state === 'ended') audio.seek(0);
       try {
+        if (audio.state === 'ended') await audio.seek(0);
+        if (command !== generation || disposed) return;
         await seekViews(audio.currentTime);
         if (command === generation && wantsPlay && !disposed) await audio.play();
       } catch (error) {
@@ -150,8 +164,9 @@ export function createSynchronizedMediaPlayer({ audio, videos = [] }) {
       publishState();
       const resume = wantsPlay || audio.state === 'playing';
       audio.pause();
-      audio.seek(seconds);
       try {
+        await audio.seek(seconds);
+        if (command !== generation || disposed) return;
         await seekViews(audio.currentTime);
         if (command === generation && resume && !disposed) {
           wantsPlay = true;
@@ -180,7 +195,7 @@ export function createSynchronizedMediaPlayer({ audio, videos = [] }) {
       audio.pause();
       publishState();
       try {
-        while (stalled.some((video) => video.isBuffering?.(audio.currentTime))) {
+        while (videos.some((video) => video.isBuffering?.(audio.currentTime))) {
           const waiting = videos.filter((video) => video.isBuffering?.(audio.currentTime));
           await Promise.all(waiting.map((video) => video.whenReady?.()));
           if (command !== generation || disposed) return;

@@ -23,8 +23,16 @@ engines are not substitutes for Safari/iOS, Android or other real devices.
 | Same; Playwright Chromium 159.0.8154.6 | Synthetic media probes | 0.1 s mono PCM WAV decoded (`AudioContext`, 48 kHz output); `VideoDecoder` and `AudioDecoder` are present; AVC baseline and AAC-LC configuration queries returned `supported: true`. No encoded video sample was decoded. |
 | Same; Playwright Firefox 159.0 | Synthetic media probes | 0.1 s mono PCM WAV decoded (`AudioContext`, 48 kHz output); `VideoDecoder` and `AudioDecoder` are present; AVC baseline and AAC-LC configuration queries returned `supported: true`. No encoded video sample was decoded. |
 | Same; Playwright WebKit 27.2 | Synthetic media probes | `AudioContext`, `VideoDecoder` and `AudioDecoder` were unavailable in this Windows Playwright build. This is not a claim about Safari on Apple devices. |
+| Windows / Edge 158 and Playwright Firefox 159 | Native streaming PCM | Synthetic 48 kHz mono float PCM actually decoded through AudioDecoder and played through AudioWorklet; native analyser observed a nonzero signal. Tests verify queue backpressure, native-rate seek/preroll, starvation/recovery, pause during pending startup and context ownership. No compressed-audio/mobile claim. |
+| Same | Score UI, IIIF and embedding | Synthetic Image API 2/3 services verify full-image coordinate mapping and click-to-seek with reduced responses. Tests cover pager, zoom, theme variables, event cursor, keyboard navigation, lazy audio loading, isolated custom elements and disposal/reconnect. No real institutional server or screen-reader certification. |
 | All other browsers/devices | All paths | Unverified. Playwright Chromium/Edge does not establish Safari/iOS or Android support. |
-| All browsers/devices | AAC, streaming audio, WebM video | Unverified or not implemented. No codec support claim. |
+| All browsers/devices | Compressed-file streaming, AAC, WebM video | Unverified. No codec support claim. |
+
+The streaming fixtures use `pcm-f32`. A local Firefox 159 raw `pcm-s16`
+probe reported configuration support but returned misinterpreted/non-finite
+samples; it is not considered verified streaming support. The transport
+rejects non-finite decoder output. This does not change buffered WAV decoding
+through `decodeAudioData()`, which is tested separately.
 
 ## Operational support
 
@@ -38,13 +46,13 @@ shows what the library actually **does** with each layer.
 | Logic, Spine | Decode VTU/VPX positions and simultaneity; act as the backbone for all mappings. | Deriving media time from VTU (no tempo model). |
 | Logic, LOS | Query symbols, staves, parts, voices and measures per event. | Engraving or rendering notation from the LOS; layout, agogics and symbol semantics beyond lookups. |
 | Structural | Data access only. | Analysis, segmentation playback, Petri-net or MIR execution. |
-| Notational | Raster or SVG score images with `graphic_event` rectangles: highlight, hit testing, page selection. | Notation instances (e.g. MusicXML/NIFF files) and `graphic_event` without rectangles. |
+| Notational | Raster/SVG and IIIF Image API 2/3 full-image sources with `graphic_event` rectangles: highlight, hit testing, pager, zoom, event cursor and keyboard navigation. | IIIF Presentation/tiled deep zoom; notation instances (e.g. MusicXML/NIFF files); `graphic_event` without rectangles. |
 | Performance | Data access only; MIDI content kept as typed opaque `midi` subtrees (`doc.imports('midi')`), not validated. | MIDI, Csound or MPEG-4 synthesis and playback. |
-| Audio | `track_event` times in seconds drive timelines; buffered Web Audio playback of decoded tracks. | Non-`seconds` `timing_type` values, `track_region` playback, streaming (see roadmap). |
+| Audio | `track_event` times in seconds drive timelines; buffered Web Audio groups; experimental single-track native-rate AudioDecoder/AudioWorklet streaming from host-supplied key audio packets. | Non-`seconds` `timing_type` values, `track_region` playback; streamed resampling/rate changes or aligned streaming audio groups. |
 | MP4/QuickTime containers | Optional Mediabunny adapter reports tracks, decoder config and native WebCodecs support, and yields encoded packets for the host's decoder. The synchronized-player wrapper can coordinate aligned video-view callbacks from the audio clock. | Library-owned container decoding/playback; video-only clocks; codecs not supported by the current browser; AVI, raw H.264 and non-MP4/MOV containers. |
 
 `createSynchronizedMediaPlayer()` is an audio-clock-led integration layer for
-an existing buffered audio group and aligned video-view callbacks. It
+an existing buffered audio group or single streaming clock and aligned video-view callbacks. It
 primes views for play and seek, delegates frame presentation to the host's
 render loop, and pauses/rebuffers the whole audio group when a buffering-aware
 view reports starvation. It is not a demuxer or WebCodecs decoder and does not
@@ -55,7 +63,7 @@ The local La Catedral XML is valid, with one `doctype-system-id` warning. The
 DmITE `da00d96` sample is invalid in strict mode because of literal
 `<undefined>` elements (see [DmITE comparison](dmite-comparison.md)).
 
-AudioWorklet streaming, media range handling, synthetic encoded-video decode,
+Compressed-file streaming, real-reader range behavior, synthetic encoded-video decode,
 video-only clocks and rebuffering against a real WebCodecs pipeline have not
 been verified. No numeric performance, memory or synchronization budgets have
 been established.

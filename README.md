@@ -3,9 +3,10 @@
 A modernized, reusable JavaScript library for web players using IEEE 1599.
 It includes a complete, DTD-validated IEEE 1599 document model covering all
 six layers with first-class Spine and LOS, plus a player projection, timeline lookups,
-predecoded Web Audio, an audio-clock-led synchronized video-view controller,
+predecoded Web Audio, experimental bounded native streaming,
+an audio-clock-led synchronized video-view controller,
 an optional read-only MP4/QuickTime demux adapter, and
-optional score/transport UI.
+optional score/transport UI, a score pager and an embeddable player.
 
 **Have IEEE 1599 material and want a web player?** Start with
 [Build your own player](docs/build-your-player.md): a step-by-step guide with
@@ -19,6 +20,8 @@ Node.js and a browser.
 - [Modernization brief and confirmed decisions](docs/modernization.md)
 - [Data model guide](docs/data-model.md), [schema reference](docs/schema-reference.md) and [schema provenance](schema/README.md)
 - [DmITE comparison](docs/dmite-comparison.md)
+- [Score UI, embedding and IIIF score images](docs/score-ui.md)
+- [Bounded native streaming audio](docs/streaming.md)
 - [Architecture and decision log](docs/architecture.md)
 - [Roadmap and test strategy](docs/roadmap.md)
 - [Early migration guide](docs/migration.md)
@@ -38,6 +41,8 @@ guides and asset-free examples in `_site/`. `pnpm run serve` (or
 
 Examples: [minimal player](examples/index.html),
 [starter player for your own material](examples/starter/index.html),
+[embeddable player](examples/embed/index.html),
+[synthetic streaming probe](examples/streaming/index.html),
 [document inspector](examples/inspector/index.html),
 [DmITE private-asset listening player](examples/dmite/README.md), and
 [La Catedral WebCodecs demonstration](examples/la-catedral/README.md).
