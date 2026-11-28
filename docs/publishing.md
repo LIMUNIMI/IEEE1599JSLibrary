@@ -90,6 +90,7 @@ The artifact includes generated docs, library browser modules and explicitly
 listed example source files, plus the public synthetic XML used by the
 inspector. It never copies `examples/assets/` (the local
 [test corpus](corpus-testing.md)), `examples/dmite/assets/`,
+`examples/starter/materials/`, `corpus-report/`,
 `examples/la-catedral/local/`, `node_modules/`, or arbitrary files under
 `examples/`. La Catedral's setup guide is published, but its runnable example
 requires the local checkout. Do not add recordings, scores, or private XML to
