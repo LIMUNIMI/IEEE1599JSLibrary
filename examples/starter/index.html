@@ -6,7 +6,12 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https: http:; connect-src 'self' blob: https: http:; object-src 'none'; base-uri 'none'; form-action 'none'">
   <title>IEEE 1599 starter player</title>
   <style>
-    body { font: 1rem system-ui, sans-serif; max-width: 60rem; margin: 2rem auto; padding: 0 1rem; }
+    /* Colors follow the IEEE 1599 visual identity used by the documentation site. */
+    body { font: 1rem 'PT Sans', 'Segoe UI', Verdana, Arial, sans-serif; max-width: 60rem; margin: 2rem auto; padding: 0 1rem; background: #f3f1ec; color: #4e5a67; }
+    h1 { border-bottom: 3px solid #f89407; padding-bottom: .3rem; }
+    button { background: #f89407; color: #353c47; border: 1px solid #c3bdb7; border-radius: 3px; padding: .3rem .7rem; font-weight: 700; }
+    button:disabled { background: #e0ded9; color: #7b7b7b; }
+    details { background: #e0ded9; border: 1px solid #c3bdb7; padding: .5rem 1rem; }
     form, .toolbar { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin: 1rem 0; }
     #document { flex: 1 1 20rem; }
     #controls { display: flex; gap: .25rem; }

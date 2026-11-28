@@ -1,0 +1,27 @@
+/* IEEE 1599 visual identity for the TypeDoc API reference; see tools/docs/style.css. */
+:root {
+  --light-color-background: #f3f1ec;
+  --light-color-background-secondary: #e0ded9;
+  --light-color-background-active: #c3bdb7;
+  --light-color-accent: #c3bdb7;
+  --light-color-text: #4e5a67;
+  --light-color-contrast-text: #353c47;
+  --light-color-text-aside: #5f6670;
+  --light-color-link: #2f3843;
+  --light-color-focus-outline: #f89407;
+  --dark-color-background: #353c47;
+  --dark-color-background-secondary: #2b3139;
+  --dark-color-background-active: #4e5a67;
+  --dark-color-accent: #5b6472;
+  --dark-color-text: #f3f1ec;
+  --dark-color-contrast-text: #ffffff;
+  --dark-color-text-aside: #e0ded9;
+  --dark-color-link: #f8b04a;
+  --dark-color-focus-outline: #f89407;
+  font-family: 'PT Sans', 'Segoe UI', Verdana, Arial, sans-serif;
+}
+.tsd-page-toolbar { background: #f89407; border-bottom-color: #353c47; }
+.tsd-page-toolbar, .tsd-page-toolbar a.title, .tsd-page-toolbar .tsd-widget { color: #353c47; }
+.tsd-page-toolbar a.title { font-weight: 700; }
+a { text-decoration-color: #f89407; }
+footer { border-top: 4px solid #f89407; }

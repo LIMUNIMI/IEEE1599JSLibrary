@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Restyle the documentation site, API reference and starter player with the
+  IEEE 1599 visual identity (orange, cream and slate palette, PT Sans when
+  installed locally), with a matching dark scheme and no external font loads.
+
 - Add local folder loading to the general starter player on the documentation
   site, with XML selection, score following and recording switching. Folder
   mode uses only selected files, blocks remote references, stores nothing
