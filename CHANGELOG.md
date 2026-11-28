@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Add **Try your folder** to the documentation site. The starter player opens
+  local IEEE 1599 XML, score images and indexed audio without uploads, remote
+  media requests or persistent browser storage.
+- Honor supported XML encodings when loading the starter and DmITE documents.
+
 - Add experimental bounded single-track native AudioDecoder/AudioWorklet
   streaming, with transferable PCM, backpressure, seek/preroll, starvation
   recovery and explicit unsupported-rate/codec errors. No streaming resampler,

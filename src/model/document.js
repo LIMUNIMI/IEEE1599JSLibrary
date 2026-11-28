@@ -349,18 +349,56 @@ export function parseIEEE1599Document(xml, options = {}) {
 }
 
 /**
+ * Decode XML bytes using the BOM, HTTP charset, or XML declaration (in
+ * that order, with a UTF-16 signature fallback). Decoding errors are reported.
+ * @internal
+ * @param {ArrayBuffer} buffer
+ * @param {string | null} [contentType]
+ * @returns {string}
+ */
+export function decodeXML(buffer, contentType) {
+  const [a, b, c, d] = new Uint8Array(buffer, 0, Math.min(4, buffer.byteLength));
+  const bom = a === 0xef && b === 0xbb && c === 0xbf ? 'utf-8'
+    : a === 0xff && b === 0xfe ? 'utf-16le' : a === 0xfe && b === 0xff ? 'utf-16be' : undefined;
+  if ((a === 0 && b === 0 && c === 0xfe && d === 0xff) || (a === 0xff && b === 0xfe && c === 0 && d === 0)
+    || (a === 0 && b === 0 && c === 0 && d === 0x3c) || (a === 0x3c && b === 0 && c === 0 && d === 0)) {
+    throw new Error('UTF-32 XML is not supported');
+  }
+  const signature = a === 0 && b === 0x3c && c === 0 && d === 0x3f ? 'utf-16be'
+    : a === 0x3c && b === 0 && c === 0x3f && d === 0 ? 'utf-16le' : undefined;
+  const charset = /;\s*charset\s*=\s*(?:"([^"]+)"|([^;\s]+))/i.exec(contentType ?? '');
+  const httpEncoding = charset?.[1] ?? charset?.[2];
+  let prefix;
+  const bytes = new Uint8Array(buffer);
+  if (!bom && !httpEncoding && !signature && a === 0x3c && b === 0x3f && c === 0x78 && d === 0x6d
+    && bytes[4] === 0x6c && [9, 10, 13, 32].includes(bytes[5])) {
+    const end = bytes.indexOf(0x3f, 5);
+    if (end >= 0 && bytes[end + 1] === 0x3e) prefix = new globalThis.TextDecoder().decode(bytes.subarray(0, end + 2));
+  }
+  const declared = prefix?.match(/\bencoding[ \t\r\n]*=[ \t\r\n]*["']([^"']+)["']/)?.[1];
+  const encoding = bom ?? (httpEncoding?.toLowerCase() === 'utf-16' && signature ? signature : httpEncoding)
+    ?? signature ?? declared ?? 'utf-8';
+  try {
+    return new globalThis.TextDecoder(encoding, { fatal: true }).decode(buffer);
+  } catch (error) {
+    throw new Error(`Cannot decode IEEE 1599 XML as ${encoding}`, { cause: error });
+  }
+}
+
+/**
  * Fetch and parse an IEEE 1599 document. `baseURL` defaults to the final
  * response URL (after redirects).
  * @param {string} url Document URL.
  * @param {ParseDocumentOptions & {signal?: AbortSignal}} [options]
  * @returns {Promise<IEEE1599Document>}
  * @throws {Error} `IEEE 1599 fetch failed: HTTP <status>` for non-OK responses,
- *   plus every error of {@link parseIEEE1599Document}.
+ *   an XML decoding error, or any error of {@link parseIEEE1599Document}.
  */
 export async function loadIEEE1599Document(url, options = {}) {
   const response = await fetch(url, { signal: options.signal });
   if (!response.ok) throw new Error(`IEEE 1599 fetch failed: HTTP ${response.status}`);
-  return parseIEEE1599Document(await response.text(), { strict: options.strict, baseURL: options.baseURL ?? response.url });
+  return parseIEEE1599Document(decodeXML(await response.arrayBuffer(), response.headers.get('Content-Type')),
+    { strict: options.strict, baseURL: options.baseURL ?? response.url });
 }
 
 /** @param {string} value */

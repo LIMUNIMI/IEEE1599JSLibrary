@@ -14,6 +14,7 @@ test('guide links resolve at the repository subpath without rewriting external r
     '## Track_event-1'
   ].join('\n\n'), '../../');
   assert.match(html, /href="\.\.\/\.\.\/api\/index\.html"/);
+  assert.match(html, /href="\.\.\/\.\.\/examples\/starter\/index\.html">Try your folder<\/a>/);
   assert.match(html, /href="related\.html#track_event"/);
   assert.deepEqual([...html.matchAll(/<h2 id="([^"]+)"/g)].map((match) => match[1]),
     ['track_event', 'track_event-1', 'track_event-1-1']);

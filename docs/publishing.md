@@ -43,11 +43,18 @@ Use uv if Python dependency tooling is needed in the future.
 
 ## GitHub Pages
 
+The documentation home links to **Try your folder**, the
+[general starter player](../examples/starter/index.html). Its folder mode
+reads the chosen files in the browser tab; nothing is uploaded or saved in
+persistent browser storage. Clear the materials to stop playback and release
+the files and temporary image URLs.
+
 The [Documentation workflow](https://github.com/LIMUNIMI/IEEE1599JSLibrary/actions/workflows/pages.yml)
-validates and builds the site on pull requests and on `main`. By default,
-`main` uploads a `documentation-site` artifact instead of deploying it. To
-preview it, download it from the workflow run's **Artifacts** section,
-unzip it, and serve the extracted directory over localhost as above.
+validates and builds the site on pull requests and on `main`. Successful
+builds on `main` deploy to <https://limunimi.github.io/IEEE1599JSLibrary/>
+when `PAGES_DEPLOY_ENABLED` is `true`. If deployment is disabled, `main`
+uploads a `documentation-site` artifact instead. To preview it, download
+the artifact, unzip it, and serve it over localhost as above.
 
 To deploy, first verify that the GitHub plan and organization policy allow
 the intended site visibility. GitHub Free cannot publish Pages from a private
@@ -60,7 +67,8 @@ workflow environment reports the published URL. There is no generated
 `gh-pages` branch to commit.
 
 The artifact includes generated docs, library browser modules and explicitly
-listed example source files. It never copies `examples/dmite/assets/`,
+listed example source files. It never copies `examples/assets/`,
+`examples/dmite/assets/`, `examples/starter/materials/`, `corpus-report/`,
 `examples/la-catedral/local/`, `node_modules/`, or arbitrary files under
 `examples/`. La Catedral's setup guide is published, but its runnable example
 requires the local checkout. Do not add recordings, scores, or private XML to
