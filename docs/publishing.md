@@ -50,6 +50,13 @@ Use uv if Python dependency tooling is needed in the future.
 
 ## GitHub Pages
 
+The published [general player](../examples/starter/index.html) and DmITE
+example let visitors select private folders locally. In the general player's
+folder mode, XML and media remain in the browser tab, with no uploads or
+persistent browser storage. Temporary media URLs are revoked when materials
+are cleared or replaced. Only the allowlisted player code is deployed, not
+visitor-selected material.
+
 The [Documentation workflow](https://github.com/LIMUNIMI/IEEE1599JSLibrary/actions/workflows/pages.yml)
 validates and builds the site on pull requests and on `main`. The repository
 is public and the site is live at

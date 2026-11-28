@@ -44,6 +44,7 @@
     "docs/",
     "examples/starter/index.html",
     "examples/starter/main.js",
+    "examples/dmite/assets.js",
     "examples/embed/index.html",
     "examples/embed/main.js",
     "examples/streaming/index.html",

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Add local folder loading to the general starter player on the documentation
+  site, with XML selection, score following and recording switching. Folder
+  mode uses only selected files, blocks remote references, stores nothing
+  persistently and releases files and image URLs on Clear or navigation.
+  Reuse the DmITE asset resolver and link the player from the site navigation.
+
 - Add `pnpm run test:corpus`, which checks a local, git-ignored corpus of
   IEEE 1599 documents in a real browser. It checks DTD validity, round-trips,
   player projection and timelines, and whether referenced images, audio and

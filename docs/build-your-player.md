@@ -19,6 +19,28 @@ The page uses only the web browser: no plugins, frameworks or build step.
 
 ## What you are looking at
 
+**Try your material before installing tools:** open the
+[general starter player](../examples/starter/index.html) on this documentation
+site and choose **Materials folder**. Select one folder containing the XML
+and its referenced scores and audio, choose the XML from the list, then click
+**Open selected XML**. Subfolders and XML filenames with spaces are supported;
+references are resolved relative to the selected XML, not the folder root.
+No DmITE `params.xml` or instrument naming convention is needed.
+
+Folder mode reads only selected local files using temporary Blob URLs. Nothing
+is uploaded, saved to browser storage or remembered after a reload. **Clear
+materials** stops playback, releases the selected files and revokes image URLs.
+It never fetches missing files or remote/IIIF references from the XML: those
+produce an error instead. The website's static code is downloaded normally.
+The separate served-document mode does make network requests; remote servers
+must allow browser access through CORS.
+
+This player supports pixel-mapped score images and indexed audio recordings
+decodable by your browser, with page turning and recording selection. It does
+not play video or synthesize MIDI. The folder picker requires a browser with
+directory selection support; see [capabilities](capabilities.md) for media
+limitations. The remaining steps show how to run and customize your own copy.
+
 The project home page links to many documents. You only need a few of them:
 
 | If you want to… | Open |

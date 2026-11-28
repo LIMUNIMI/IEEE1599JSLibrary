@@ -11,7 +11,10 @@ optional score/transport UI, a score pager and an embeddable player.
 **Have IEEE 1599 material and want a web player?** Start with
 [Build your own player](docs/build-your-player.md): a step-by-step guide with
 a ready-to-copy [starter player](examples/starter/index.html) that needs only
-Node.js and a browser.
+Node.js and a browser. On the documentation site you can also
+[try your own folder](examples/starter/index.html) immediately: select your XML,
+scores and recordings without installing anything. Folder mode runs entirely
+in your browser, uploads nothing and uses no persistent storage.
 
 **Developing with or on the library?** Start with
 [Getting started](docs/getting-started.md) and the

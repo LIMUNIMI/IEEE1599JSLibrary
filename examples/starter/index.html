@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https: http:; connect-src 'self' blob: https: http:; object-src 'none'; base-uri 'none'; form-action 'none'">
   <title>IEEE 1599 starter player</title>
   <style>
     body { font: 1rem system-ui, sans-serif; max-width: 60rem; margin: 2rem auto; padding: 0 1rem; }
@@ -16,11 +17,27 @@
 <body>
   <h1 id="title">IEEE 1599 starter player</h1>
   <p id="authors"></p>
+  <section aria-label="Local materials">
+    <h2>Try your own folder</h2>
+    <p>Choose one folder containing your IEEE 1599 XML and its scores and recordings,
+      keeping the relative paths used in the XML. Files stay in this tab: nothing is
+      uploaded or saved by the website. Remote media references are not loaded in folder mode.</p>
+    <label for="folder">Materials folder</label>
+    <input id="folder" type="file" webkitdirectory multiple>
+    <label for="local-document">XML in the selected folder</label>
+    <select id="local-document" disabled></select>
+    <button id="open-local" type="button" disabled>Open selected XML</button>
+    <button id="clear" type="button">Clear materials</button>
+  </section>
+  <details>
+    <summary>Alternatively, open a served document URL</summary>
   <form id="open">
     <label for="document">IEEE 1599 document</label>
     <input id="document" name="document" value="materials/piece.xml" required>
     <button>Open</button>
   </form>
+  <p>This separate mode fetches files from a web server, unlike the local folder picker.</p>
+  </details>
   <p id="status" role="alert"></p>
   <section id="player" hidden aria-label="Player">
     <div class="toolbar">

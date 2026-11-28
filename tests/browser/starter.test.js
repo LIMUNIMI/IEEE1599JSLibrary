@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
 import { Buffer } from 'node:buffer';
+import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
 import { after, before, test } from 'node:test';
 import { startBrowserHarness } from './harness.js';
 
@@ -63,7 +66,8 @@ test('starter follows the score, turns pages and keeps the score position across
     await serveMaterials(tab);
     await tab.goto(`${harness.base}examples/starter/index.html?document=materials/piece.xml`);
     assert.equal(await tab.getByLabel('IEEE 1599 document').inputValue(), 'materials/piece.xml');
-    await tab.getByRole('button', { name: 'Open' }).click();
+    await tab.locator('summary').click();
+    await tab.getByRole('button', { name: 'Open', exact: true }).click();
     await tab.getByRole('button', { name: 'Play' }).waitFor();
     assert.equal(await tab.locator('#title').textContent(), 'Starter test');
     assert.equal(await tab.locator('#authors').textContent(), 'Anonymous (composer)');
@@ -96,7 +100,8 @@ test('starter explains a missing recording and recovers with another one', async
   try {
     await serveMaterials(tab, 'first take.wav');
     await tab.goto(`${harness.base}examples/starter/index.html`);
-    await tab.getByRole('button', { name: 'Open' }).click();
+    await tab.locator('summary').click();
+    await tab.getByRole('button', { name: 'Open', exact: true }).click();
     await tab.locator('#status').getByText('HTTP 404').waitFor();
     assert.match(await tab.locator('#status').textContent(), /^Cannot play .*first%20take\.wav: Audio fetch failed: HTTP 404$/);
     await tab.getByLabel('Recording').selectOption({ label: 'second.wav' });
@@ -104,5 +109,97 @@ test('starter explains a missing recording and recovers with another one', async
     assert.equal(await tab.locator('#status').textContent(), '');
   } finally {
     await tab.close();
+  }
+});
+
+test('starter opens a private nested folder, switches recordings and clears without uploads or storage', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'starter-folder-'));
+  const tab = await harness.browser.newPage();
+  tab.setDefaultTimeout(5000);
+  try {
+    for (const [name, [body]] of files) {
+      const path = join(directory, 'nested', name === 'piece.xml' ? 'piece étude #1.xml' : name);
+      await mkdir(dirname(path), { recursive: true });
+      await writeFile(path, body);
+    }
+    await writeFile(join(directory, 'other.xml'), '<ieee1599 version="1.0"/>');
+    await tab.addInitScript(() => {
+      const created = new Set();
+      const make = URL.createObjectURL.bind(URL);
+      const revoke = URL.revokeObjectURL.bind(URL);
+      URL.createObjectURL = (blob) => { const url = make(blob); created.add(url); return url; };
+      URL.revokeObjectURL = (url) => { created.delete(url); revoke(url); };
+      globalThis.activeLocalURLs = created;
+      globalThis.Storage.prototype.setItem = () => { throw new Error('Unexpected persistent storage'); };
+      globalThis.indexedDB.open = () => { throw new Error('Unexpected IndexedDB'); };
+      globalThis.caches.open = () => { throw new Error('Unexpected cache storage'); };
+    });
+    await tab.goto(`${harness.base}examples/starter/index.html`);
+    const network = [];
+    await tab.route('**/*', (route) => {
+      if (new URL(route.request().url()).pathname.endsWith('.js') && route.request().method() === 'GET') return route.continue();
+      network.push(route.request().url());
+      return route.abort();
+    });
+    await tab.getByLabel('Materials folder', { exact: true }).setInputFiles(directory);
+    await tab.getByLabel('XML in the selected folder').selectOption('nested/piece étude #1.xml');
+    await tab.getByRole('button', { name: 'Open selected XML' }).click();
+    await tab.getByRole('button', { name: 'Play', exact: true }).waitFor();
+    await tab.waitForFunction(() => document.querySelector('#score img')?.naturalWidth === 100);
+    await tab.getByRole('button', { name: 'Next page' }).click();
+    await tab.getByRole('button', { name: 'Seek to score event b' }).click();
+    await tab.locator('#now').getByText('b at 0.70 s').waitFor();
+    await tab.getByLabel('Recording').selectOption({ label: 'second.wav' });
+    await tab.locator('#now').getByText('b at 1.35 s').waitFor();
+    assert.equal(await tab.locator('#title').textContent(), 'Starter test');
+    assert.deepEqual(network, []);
+    assert.ok(await tab.evaluate(() => globalThis.activeLocalURLs.size > 0));
+    await tab.getByRole('button', { name: 'Clear materials' }).click();
+    await tab.locator('#status').getByText('Materials cleared.').waitFor();
+    assert.equal(await tab.evaluate(() => globalThis.activeLocalURLs.size), 0);
+    assert.equal(await tab.locator('#folder').inputValue(), '');
+    assert.equal(await tab.locator('#local-document option').count(), 0);
+    assert.equal(await tab.locator('#score img').count(), 0);
+    assert.equal(await tab.locator('#player').isHidden(), true);
+    await tab.unroute('**/*');
+    await tab.reload();
+    assert.equal(await tab.locator('#folder').inputValue(), '');
+    assert.equal(await tab.locator('#local-document option').count(), 0);
+  } finally {
+    await tab.close();
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('local folder mode reports missing and remote references without fetching them', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'starter-errors-'));
+  const tab = await harness.browser.newPage();
+  tab.setDefaultTimeout(5000);
+  try {
+    const localPiece = piece.replace('first%20take.wav', 'missing.wav');
+    await writeFile(join(directory, 'missing.xml'), localPiece);
+    await writeFile(join(directory, 'remote.xml'), piece.replace('first%20take.wav', 'https://example.org/private.wav'));
+    await writeFile(join(directory, 'outside.xml'), piece.replace('first%20take.wav', '../outside.wav'));
+    await writeFile(join(directory, 'bad.xml'), '<ieee1599>');
+    const requested = [];
+    await tab.goto(`${harness.base}examples/starter/index.html`);
+    tab.on('request', (request) => {
+      if (!new URL(request.url()).pathname.endsWith('.js')) requested.push(request.url());
+    });
+    await tab.getByLabel('Materials folder', { exact: true }).setInputFiles(directory);
+    for (const [name, message] of [
+      ['missing.xml', 'Missing asset: missing.wav'],
+      ['remote.xml', 'Assets must be inside the selected assets folder'],
+      ['outside.xml', 'Assets must be inside the selected assets folder'],
+      ['bad.xml', 'Malformed IEEE 1599 XML']
+    ]) {
+      await tab.getByLabel('XML in the selected folder').selectOption(name);
+      await tab.getByRole('button', { name: 'Open selected XML' }).click();
+      await tab.locator('#status').getByText(message, { exact: false }).waitFor();
+    }
+    assert.deepEqual(requested.filter((url) => /^https?:/.test(url)), []);
+  } finally {
+    await tab.close();
+    await rm(directory, { recursive: true, force: true });
   }
 });
