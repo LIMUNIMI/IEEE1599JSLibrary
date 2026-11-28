@@ -39,7 +39,7 @@ keeps such undeclared attributes in `rawAttributes` and reports them as
 | DmITE feature | Library status |
 | --- | --- |
 | `MXPlayer` page wiring, jqWidgets controls | Replaced by the headless core and the optional framework-free `createTransportControls()`. jqWidgets is not used. |
-| `MXContent` and `MXMedia`, HTML `<audio>` and `<video>` | Not reused, because playback must use Web Audio and WebCodecs only. Buffered audio uses `createBufferedAudioPlayer()`. Video exists only in the La Catedral example adapter. |
+| `MXContent` and `MXMedia`, HTML `<audio>` and `<video>` | Not reused, because playback must use Web Audio and WebCodecs only. Buffered audio uses `createBufferedAudioPlayer()`. DmITE and La Catedral share an example-only native video presenter with the optional Mediabunny container reader. |
 | `MXContentWebAudio` and `WebAudioManager` | Superseded by the buffered player: shared transport, gain, pan, rate, multiple instances, group ending and diagnostics. |
 | `SyncManager` and `VideoSyncManager`, which correct drift with HTML media seeks | `createSynchronizedMediaPlayer()` coordinates aligned video-view callbacks from a buffered Web Audio clock. A general WebCodecs backend, independent offsets/rates and strict mixed-media rebuffering remain on the [roadmap](roadmap.md). |
 | `MXGraphics` canvas score: highlight, click, page navigation, one-note mode | `createScoreView()` and `createScorePager()` cover highlight, click-to-seek, page navigation, zoom, event cursor and IIIF sources. DmITE and La Catedral retain their example canvas renderer; One Note remains example-only. |
@@ -49,11 +49,14 @@ keeps such undeclared attributes in `rawAttributes` and reports them as
 | `findGraphicEvents(x, y)` | Hit testing in `createScoreView()`. |
 | Console `debugLog` | Per-player structured diagnostics with bounded retention. |
 
-The example uses native selects, radios, checkboxes and buttons across three
-listening panels. The selected WAV is fully decoded before playback; angle or
-instrument changes switch by score event. Synchronized MP4 panels are not
-implemented in the dependency-free example, and the package does not provide
-voice filtering or general mixed-media transport. See the [roadmap](roadmap.md).
+The example uses native instrument selects, speaker radios, rotary angle
+knobs, a mode switch and buttons across three listening panels. The selected
+WAV is fully decoded before playback; angle or instrument changes switch by
+score event. Its MP4 panels use `createSynchronizedMediaPlayer()` with
+application-specific Spine-to-video timeline mappings: video readiness gates
+audio start, seeks and recovery from decoder starvation. The package does not
+provide voice filtering or a general mixed-media backend. See the
+[roadmap](roadmap.md).
 
 The optional [embedded player](score-ui.md#an-embeddable-player) packages the
 common score/buffered-audio workflow without DmITE-specific instrument panels.

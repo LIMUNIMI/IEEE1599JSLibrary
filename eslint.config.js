@@ -27,6 +27,7 @@ export default [
         fetch: 'readonly',
         HTMLButtonElement: 'readonly',
         HTMLCanvasElement: 'readonly',
+        HTMLDialogElement: 'readonly',
         HTMLElement: 'readonly',
         HTMLInputElement: 'readonly',
         HTMLFormElement: 'readonly',

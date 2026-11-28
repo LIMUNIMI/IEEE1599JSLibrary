@@ -14,6 +14,7 @@ export const EXAMPLE_FILES = [
   'examples/shared/score.js', 'examples/shared/video.js',
   'examples/dmite/index.html', 'examples/dmite/style.css',
   'examples/dmite/main.js', 'examples/dmite/assets.js', 'examples/dmite/model.js',
+  'examples/dmite/knob.js',
   'tests/fixtures/all-layers.xml'
 ];
 

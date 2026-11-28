@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+- Fix DmITE videos falling behind or appearing stuck after angle, instrument
+  and seek changes. Coordinate the panels with the synchronized audio
+  transport, wait for decoder readiness before resuming, and keep existing
+  panels at the score position while replacement recordings load. Drain
+  queued frames to the frozen clock during rebuffering and show the final
+  video frames when playback ends.
+
+- Restyle the DmITE example after the original player: red header, score
+  band, three side-by-side panels whose videos keep their aspect ratio and
+  resize with the window, and a grey icon transport bar with a Melody/One
+  note switch and help dialog. Replace the angle menu and compass with a
+  dependency-free rotary knob overlaid on each video (pointer drag, snapping
+  and keyboard slider), sized like the original jqWidgets knob.
+- Serve `.css` files in the browser test harness so example layouts are
+  covered by the browser tests.
+
 - Restyle the documentation site, API reference and starter player with the
   IEEE 1599 visual identity (orange, cream and slate palette, PT Sans when
   installed locally), with a matching dark scheme and no external font loads.

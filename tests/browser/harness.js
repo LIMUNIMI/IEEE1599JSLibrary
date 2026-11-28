@@ -6,7 +6,7 @@ import { chromium, firefox, webkit } from 'playwright-core';
 const root = new URL('../../', import.meta.url);
 const allowed = ['src/', 'examples/', 'tests/fixtures/', 'schema/', 'node_modules/mediabunny/dist/'];
 const types = {
-  html: 'text/html', js: 'text/javascript', mjs: 'text/javascript', xml: 'application/xml', dtd: 'application/xml-dtd',
+  html: 'text/html', css: 'text/css', js: 'text/javascript', mjs: 'text/javascript', xml: 'application/xml', dtd: 'application/xml-dtd',
   svg: 'image/svg+xml', png: 'image/png', jpg: 'image/jpeg', mp3: 'audio/mpeg', mp4: 'video/mp4', wav: 'audio/wav'
 };
 

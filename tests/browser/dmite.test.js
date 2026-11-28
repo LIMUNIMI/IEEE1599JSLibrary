@@ -128,8 +128,10 @@ test('uses private folder files without fetching them and follows the selected p
     const pixel = await canvas.evaluate((el) => Array.from(el.getContext('2d').getImageData(20, 20, 1, 1).data));
     assert.ok(pixel[0] > pixel[1], 'score rectangle is visibly highlighted');
 
-    assert.equal(await left.getByLabel('Angle').locator('option').count(), 2);
-    await left.getByLabel('Angle').selectOption({ label: '90° (Right)' });
+    const angle = left.getByRole('slider', { name: 'Angle' });
+    assert.equal(await angle.getAttribute('max'), '1');
+    await angle.fill('1');
+    assert.equal(await angle.getAttribute('aria-valuetext'), '90° (Right)');
     assert.equal(await page.locator('#time').textContent(), '0.30 / 2.00 s');
     await left.getByRole('radio').check();
     await page.waitForFunction(() => document.querySelector('#time').value === '0.90 / 2.00 s');
@@ -165,13 +167,64 @@ test('served assets report a missing recording and allow another angle to recove
       return route.fulfill({ body, contentType });
     });
     await page.goto(new URL(`${example}index.html`, harness.base).href);
-    await page.getByRole('button', { name: 'Load served assets' }).click();
+    await page.getByRole('button', { name: 'Served assets' }).click();
     await page.waitForFunction(() => document.querySelector('#error').textContent.includes('HTTP 404'));
     assert.match(await page.locator('#error').textContent(), /sound_front\.wav/);
     assert.equal(await page.getByRole('button', { name: 'Play', exact: true }).isDisabled(), true);
-    await page.getByRole('group', { name: 'Center' }).getByLabel('Angle').selectOption('1');
+    const knob = page.getByRole('group', { name: 'Center' }).locator('.knob svg');
+    const box = await knob.boundingBox();
+    assert.ok(box);
+    await page.mouse.click(box.x + box.width * 0.95, box.y + box.height / 2);
     await page.waitForFunction(() => !document.querySelector('#play').disabled);
+    assert.equal(await page.getByRole('group', { name: 'Center' }).getByRole('slider', { name: 'Angle' })
+      .getAttribute('aria-valuetext'), '90° (Right)');
     assert.equal(await page.locator('#error').textContent(), '');
+  } finally {
+    await page.close();
+  }
+});
+
+test('keeps three proportional angle knobs side by side as the window resizes', async () => {
+  const page = await harness.browser.newPage({ viewport: { width: 1280, height: 720 } });
+  page.setDefaultTimeout(5000);
+  try {
+    await page.route(`**${prefix}**`, (route) => {
+      const name = new URL(route.request().url()).pathname.slice(prefix.length);
+      const body = assets.get(name);
+      if (body === undefined) return route.fulfill({ status: 404 });
+      const contentType = name.endsWith('.wav') ? 'audio/wav' : name.endsWith('.svg') ? 'image/svg+xml' : 'application/xml';
+      return route.fulfill({ body, contentType });
+    });
+    await page.goto(new URL(`${example}index.html`, harness.base).href);
+    await page.getByRole('button', { name: 'Served assets' }).click();
+    await page.waitForFunction(() => !document.querySelector('#play').disabled);
+    const measure = () => page.evaluate(() => {
+      const pictures = [...document.querySelectorAll('.picture')].map((element) => element.getBoundingClientRect());
+      const knob = document.querySelector('.picture .knob').getBoundingClientRect();
+      const fitted = Math.min(pictures[0].height - 2, (pictures[0].width - 2) * 0.75);
+      return {
+        tops: pictures.map(({ top }) => Math.round(top)),
+        widths: pictures.map(({ width }) => Math.round(width)),
+        scrolls: document.scrollingElement.scrollHeight > window.innerHeight,
+        ratio: knob.width / fitted
+      };
+    });
+    const wide = await measure();
+    assert.equal(new Set(wide.tops).size, 1, 'panels share one row');
+    assert.ok(Math.max(...wide.widths) - Math.min(...wide.widths) <= 1, 'panels share the width');
+    assert.ok(wide.widths.reduce((sum, width) => sum + width) >= 1270, 'panels fill the window');
+    assert.equal(wide.scrolls, false);
+    assert.ok(Math.abs(wide.ratio - 0.9313) < 0.02, `knob follows the original proportion: ${wide.ratio}`);
+    await page.setViewportSize({ width: 900, height: 1000 });
+    const tall = await measure();
+    assert.equal(new Set(tall.tops).size, 1);
+    assert.ok(tall.widths[0] < wide.widths[0]);
+    assert.ok(Math.abs(tall.ratio - 0.9313) < 0.02, `knob adapts after resizing: ${tall.ratio}`);
+
+    const angle = page.getByRole('group', { name: 'Left' }).getByRole('slider', { name: 'Angle' });
+    await angle.focus();
+    await page.keyboard.press('ArrowRight');
+    assert.equal(await angle.getAttribute('aria-valuetext'), '90° (Right)');
   } finally {
     await page.close();
   }
@@ -249,12 +302,129 @@ test('reports an unsupported native video codec without interrupting audio playb
     await page.getByRole('button', { name: 'Play', exact: true }).click();
     await page.waitForFunction(() => Number(document.querySelector('#time').value.split(' / ')[0]) >= 0.1);
     assert.equal(await page.locator('.video-feed:not([hidden])').count(), 0);
-    assert.equal(await page.locator('.compass').first().isVisible(), true);
+    assert.equal(await page.locator('.knob').first().isVisible(), true);
     assert.equal(await page.locator('audio, video').count(), 0);
     assert.equal(await page.locator('#error').textContent(), '');
   } finally {
     await page.close();
     await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('slow videos stay synchronized across paused, playing and rapid recording changes', async () => {
+  const alternateAudio = paths[0].replace('/Example/', '/Alternate/');
+  const alternateVideo = videoPath.replace('/Example/', '/Alternate/');
+  const videoAssets = new Map(assets);
+  videoAssets.set('params.xml', videoParams.replace('</instruments>', `<instrument name="Alternate"
+    track_prefix="sound" video_suffix=".mp4"><angle value="0" track_suffix="front"/></instrument></instruments>`));
+  videoAssets.set('variationsserieuses.xml', videoScore.replace('</audio>',
+    `${track(alternateAudio, 0.3, 0.7)}${track(alternateVideo, 0.6, 1.1).replace('audio_wav', 'video_quicktime')}</audio>`));
+  videoAssets.set(alternateAudio, assets.get(paths[0]));
+  const slowMediabunny = fakeMediabunny
+    .replace('  async getSample(position) {', `  async getSample(position) {
+    (window.videoSeeks ??= []).push(position);
+    await new Promise((resolve) => setTimeout(resolve, 650));`)
+    .replace('      yield sample(time);', `      await new Promise((resolve) => setTimeout(resolve, 120));
+      yield sample(time);`);
+  const page = await harness.browser.newPage();
+  page.setDefaultTimeout(10000);
+  try {
+    await page.route(`**${prefix}**`, async (route) => {
+      const name = new URL(route.request().url()).pathname.slice(prefix.length);
+      if (name === paths[1]) await new Promise((resolve) => setTimeout(resolve, 200));
+      const body = videoAssets.get(name);
+      if (body === undefined) return route.fulfill({ status: 404 });
+      const contentType = name.endsWith('.wav') ? 'audio/wav' : name.endsWith('.svg') ? 'image/svg+xml' : 'application/xml';
+      return route.fulfill({ body, contentType });
+    });
+    await page.route('https://cdn.jsdelivr.net/npm/mediabunny@1.66.1/dist/bundles/mediabunny.mjs',
+      (route) => route.fulfill({ contentType: 'text/javascript', body: slowMediabunny }));
+    await page.addInitScript(() => {
+      if (!('VideoDecoder' in window)) Object.defineProperty(window, 'VideoDecoder', { value: function VideoDecoder() {} });
+    });
+    await page.goto(new URL(`${example}index.html`, harness.base).href);
+    await page.locator('#served').click();
+    await page.waitForFunction(() => !document.querySelector('#play').disabled
+      && [...document.querySelectorAll('.video-feed')].every((canvas) => !canvas.hidden));
+    await page.locator('#position').fill('0.5');
+    await page.waitForFunction(() => [...document.querySelectorAll('.video-feed')]
+      .every((canvas) => Math.abs(Number(canvas.dataset.timestamp) - 0.6) < 0.01));
+
+    const left = page.getByRole('group', { name: 'Left' });
+    await left.locator('.instrument-select').selectOption({ label: 'Alternate' });
+    await page.waitForFunction(() => !document.querySelector('.video-feed').hidden
+      && Math.abs(Number(document.querySelector('.video-feed').dataset.timestamp) - 0.8) < 0.01);
+    await page.evaluate(() => { window.videoSeeks = []; });
+    await page.getByRole('group', { name: 'Center' }).getByRole('slider', { name: 'Angle' }).fill('1');
+    await page.waitForFunction(() => !document.querySelector('#play').disabled);
+    assert.equal(await page.locator('#time').textContent(), '0.90 / 2.00 s');
+    assert.equal(await page.locator('#play').textContent(), 'Play');
+    assert.ok((await page.evaluate(() => window.videoSeeks)).every((position) => position > 0),
+      'loading a replacement recording must not rewind existing videos to zero');
+
+    await page.locator('#play').click();
+    await page.waitForTimeout(150);
+    assert.equal(await page.locator('#time').textContent(), '0.90 / 2.00 s',
+      'audio waits for slow video seeks before starting');
+    await page.waitForFunction(() => Number(document.querySelector('#time').value.split(' / ')[0]) >= 1);
+    await page.waitForFunction(() => document.querySelector('#status').textContent === 'Buffering video…');
+    await page.locator('#play').click();
+    const pausedTime = await page.locator('#time').textContent();
+    await page.waitForTimeout(400);
+    assert.equal(await page.locator('#time').textContent(), pausedTime);
+    assert.equal(await page.locator('#play').textContent(), 'Play',
+      'pausing during rebuffering must cancel automatic resume');
+    await page.locator('#play').click();
+    await page.waitForFunction(() => document.querySelector('#play').textContent === 'Pause');
+    const lead = await page.evaluate(async () => {
+      let maximum = 0;
+      for (let i = 0; i < 50; i++) {
+        const seconds = Number(document.querySelector('#time').value.split(' / ')[0]);
+        const anchor = seconds >= 1.35 ? 1.35 : 0.9;
+        const videoAnchor = seconds >= 1.35 ? 0.9 : 0.4;
+        const feeds = [...document.querySelectorAll('.video-feed')];
+        feeds.forEach((canvas, index) => {
+          const expected = videoAnchor + (index === 0 ? 0.2 : 0) + seconds - anchor;
+          maximum = Math.max(maximum, expected - Number(canvas.dataset.timestamp));
+        });
+        await new Promise((resolve) => setTimeout(resolve, 30));
+      }
+      return maximum;
+    });
+    assert.ok(lead < 0.25, `audio must not outrun the three video decoders: ${lead.toFixed(3)} s`);
+    await page.waitForFunction(() => document.querySelector('#time').value === '2.00 / 2.00 s'
+      && document.querySelector('#play').textContent === 'Play');
+    await page.waitForFunction(() => [...document.querySelectorAll('.video-feed')]
+      .every((canvas, index) => Math.abs(Number(canvas.dataset.timestamp) - (index === 0 ? 1.7 : 1.5)) < 0.01));
+
+    await page.locator('#rewind').click();
+    await page.waitForFunction(() => document.querySelector('#time').value === '0.00 / 2.00 s');
+    await page.locator('#play').click();
+    await page.waitForFunction(() => Number(document.querySelector('#time').value.split(' / ')[0]) >= 0.35);
+    const center = page.getByRole('group', { name: 'Center' });
+    await center.locator('.instrument-select').selectOption({ label: 'Alternate' });
+    await page.waitForFunction(() => !document.querySelector('#play').disabled
+      && !document.querySelectorAll('.video-feed')[1].hidden);
+    const switchedTime = Number((await page.locator('#time').textContent()).split(' / ')[0]);
+    const switchedFrame = Number(await center.locator('.video-feed').getAttribute('data-timestamp'));
+    await page.waitForFunction((previous) => Number(document.querySelector('#time').value.split(' / ')[0]) > previous + 0.2,
+      switchedTime);
+    await page.waitForFunction((previous) => Number(document.querySelectorAll('.video-feed')[1].dataset.timestamp) > previous + 0.1,
+      switchedFrame);
+
+    await center.locator('.instrument-select').selectOption({ label: 'Example' });
+    await center.getByRole('slider', { name: 'Angle' }).fill('1');
+    await page.waitForFunction(() => !document.querySelector('#play').disabled
+      && !document.querySelectorAll('.video-feed')[1].hidden);
+    assert.equal(await center.getByRole('slider', { name: 'Angle' }).inputValue(), '1');
+    const resumedTime = Number((await page.locator('#time').textContent()).split(' / ')[0]);
+    await page.waitForFunction((previous) => {
+      const seconds = Number(document.querySelector('#time').value.split(' / ')[0]);
+      return seconds > previous || (seconds === 2 && document.querySelector('#play').textContent === 'Play');
+    }, resumedTime);
+    assert.equal(await page.locator('#error').textContent(), '');
+  } finally {
+    await page.close();
   }
 });
 
@@ -299,7 +469,7 @@ test('superseded video primes cannot dispose or draw over a newer instrument fee
       if (!('VideoDecoder' in window)) Object.defineProperty(window, 'VideoDecoder', { value: function VideoDecoder() {} });
     });
     await page.goto(new URL(`${example}index.html`, harness.base).href);
-    await page.getByRole('button', { name: 'Load served assets' }).click();
+    await page.getByRole('button', { name: 'Served assets' }).click();
     await page.waitForFunction(() => window.oldVideoPrimes?.length === 3);
     const center = page.getByRole('group', { name: 'Center' });
     const instrument = center.locator('.instrument-select');

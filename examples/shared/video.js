@@ -97,6 +97,7 @@ export function createVideoPresenter(picture) {
   let seeking;
   let generation = 0;
   let disposed = false;
+  let readyPosition = 0;
 
   function clearRun() {
     const old = run;
@@ -116,14 +117,40 @@ export function createVideoPresenter(picture) {
       .finally(() => { active.pending = undefined; });
   }
 
+  /** @param {FrameRun} active @param {number} position */
+  function consume(active, position) {
+    while (run === active && active.next && active.next.timestamp <= position + 0.00001) {
+      const sample = active.next;
+      active.next = undefined;
+      try {
+        picture.draw(sample);
+        active.until = sample.timestamp + sample.duration;
+      } finally {
+        sample.close();
+      }
+      prefetch(active);
+      if (active.pending) break;
+    }
+    prefetch(active);
+  }
+
+  /** @param {FrameRun} active @param {number} position */
+  function needsData(active, position) {
+    return !active.eof && position >= active.until - 0.00001
+      && (!active.next || active.next.timestamp <= position + 0.00001);
+  }
+
   /** @param {number} position */
   function seek(position) {
     if (disposed) return Promise.reject(new Error('Video presenter is disposed'));
     if (!Number.isFinite(position) || position < 0) return Promise.reject(new Error('Invalid video position'));
+    readyPosition = position;
     const id = ++generation;
     clearRun();
     const operation = (async () => {
-      const first = await picture.frameAt(position);
+      const samplePosition = picture.duration === null ? position
+        : Math.min(position, Math.max(0, picture.duration - 0.00001));
+      const first = await picture.frameAt(samplePosition);
       if (!first) throw new Error('Video has no frame at the requested time');
       try {
         if (id !== generation || disposed) return;
@@ -160,13 +187,23 @@ export function createVideoPresenter(picture) {
     seek,
     /** @param {number} position */
     isBuffering(position) {
-      return Boolean(run && !run.eof && !run.next && run.pending && position >= run.until - 0.00001);
+      readyPosition = position;
+      return Boolean(seeking || (run && needsData(run, position)));
     },
     async whenReady() {
+      await seeking;
       const active = run;
       if (!active) return;
       await active.pending;
       if (active.error !== undefined) throw active.error;
+      // A queued frame can still be behind the frozen audio clock. Drain to
+      // that position before signaling readiness, rather than restarting a seek.
+      while (run === active && needsData(active, readyPosition)) {
+        consume(active, readyPosition);
+        await active.pending;
+        if (active.error !== undefined) throw active.error;
+      }
+      if (run === active) active.position = readyPosition;
     },
     /** @param {number} position */
     async present(position) {
@@ -177,19 +214,7 @@ export function createVideoPresenter(picture) {
       if (position < run.position - 0.05 || position - run.position > 0.5) return seek(position);
       run.position = position;
       if (run.error !== undefined) throw run.error;
-      while (run.next && run.next.timestamp <= position + 0.00001) {
-        const sample = run.next;
-        run.next = undefined;
-        try {
-          picture.draw(sample);
-          run.until = sample.timestamp + sample.duration;
-        } finally {
-          sample.close();
-        }
-        prefetch(run);
-        if (run.pending) break;
-      }
-      prefetch(run);
+      consume(run, position);
       if (run.error !== undefined) throw run.error;
     },
     dispose() {
