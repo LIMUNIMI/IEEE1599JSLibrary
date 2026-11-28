@@ -26,8 +26,9 @@ The transport provides `play()`, `pause()`, asynchronous `seek(seconds)`,
 `statechange`/`positionchange`/`error` events. Time is derived from audio
 rendering and the AudioContext, never from animation frames or wall timers.
 Native starvation freezes media time, outputs silence, and resumes only when
-PCM is ready. Context interruption similarly freezes playback. Injected
-contexts are neither suspended nor closed.
+PCM is ready. At the declared duration, playback ends without waiting for the
+iterator to return EOF; the player aborts further reading. Context interruption
+similarly freezes playback. Injected contexts are neither suspended nor closed.
 
 Use the streaming player as the `audio` clock of
 `createSynchronizedMediaPlayer()` to align video views. This does **not** make
@@ -97,8 +98,10 @@ HTTP servers must provide the CORS and range behavior the reader needs.
 
 `bufferSeconds` (default 2; 0.5-30) bounds queued/in-flight transferable PCM
 sample frames per channel. `bufferedFrames` reports outstanding frames and
-`capacity` the configured ceiling. Each decoded packet must fit within half
-the capacity; otherwise playback reports an error. `maxPacketBytes` (default
+`capacity` the configured ceiling. Decoded frames outside the seek-to-end
+window are discarded before allocating or transferring a PCM copy. Retained
+frames from each packet must fit within half the capacity; otherwise playback
+reports an error. `maxPacketBytes` (default
 1 MiB) limits each encoded input chunk. Only one packet is submitted to the
 native decoder at a time; backpressure stops packet iteration when the PCM
 queue exceeds half capacity.

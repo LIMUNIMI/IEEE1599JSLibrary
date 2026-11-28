@@ -131,7 +131,7 @@ export function validateTree({ root, doctype }) {
     if (doctype.systemId && !KNOWN_SYSTEM_IDS.includes(doctype.systemId)) {
       document({ code: 'doctype-system-id', severity: 'warning', message: `DOCTYPE refers to ${doctype.systemId}; validated against the vendored LIM IEEE 1599 DTD 1.0 instead`, path: null, element: null, attribute: null, value: doctype.systemId });
     }
-    if (doctype.internalSubset && doctype.internalSubset.replace(/<!--[\s\S]*?-->/g, '').trim()) {
+    if (doctype.internalSubset && /[^ \t\r\n]/.test(doctype.internalSubset.replace(/<!--[\s\S]*?-->/g, ''))) {
       document({ code: 'internal-subset', severity: 'error', message: 'Internal DTD subset declarations are not supported', path: null, element: null, attribute: null, value: null });
     }
   }
@@ -229,7 +229,7 @@ function validateContent(element, declaration, report) {
     return;
   }
   for (const child of element.children) {
-    if ((child.type === 'text' && child.value.trim()) || child.type === 'cdata') {
+    if ((child.type === 'text' && /[^ \t\r\n]/.test(child.value)) || child.type === 'cdata') {
       report(issueAt(element, 'text-not-allowed', 'error', `Character data is not allowed in element-only content of ${element.name}`));
       break;
     }

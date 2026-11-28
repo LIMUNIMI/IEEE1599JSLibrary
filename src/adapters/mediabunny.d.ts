@@ -21,15 +21,18 @@ export interface MediabunnyPacketReader {
   ): AsyncGenerator<MediabunnyPacket, void, unknown>;
 }
 
-export interface MediabunnyTrack {
-  readonly type: 'audio' | 'video';
+interface MediabunnyTrackBase {
   readonly codec: string | null;
-  readonly decoderConfig: AudioDecoderConfig | VideoDecoderConfig | null;
   readonly canDecode: boolean;
   readonly duration: number | null;
   readonly packets: MediabunnyPacketReader;
   readonly sourceTrack: object;
 }
+
+export type MediabunnyTrack = MediabunnyTrackBase & (
+  | { readonly type: 'audio'; readonly decoderConfig: AudioDecoderConfig | null }
+  | { readonly type: 'video'; readonly decoderConfig: VideoDecoderConfig | null }
+);
 
 export interface MediabunnyInput {
   readonly mimeType: string;

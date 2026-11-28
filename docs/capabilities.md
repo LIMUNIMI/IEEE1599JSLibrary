@@ -6,11 +6,14 @@ only to the stated environment and synthetic fixtures.
 Pull requests and `main` run a browser smoke suite in Playwright Chromium,
 Firefox and WebKit, plus the full browser integration suite in Chromium. Each
 matrix run uploads a `browser-capabilities-<engine>` artifact
-containing the user agent, synthetic WAV decode result, WebCodecs API presence,
-and AVC/AAC configuration-query results where those APIs exist. Configuration
+containing the user agent, synthetic WAV decode result, audio-clock progress
+after a user gesture, WebCodecs API presence, and AVC/AAC configuration-query
+results where those APIs exist. Configuration
 queries report decoder capability claims only; they do not prove that a
-container demuxes or a particular real media file decodes. These browser
-engines are not substitutes for Safari/iOS, Android or other real devices.
+container demuxes or that a particular file decodes. A separate browser test
+reads a synthetic MP4 across two HTTP origins, checks partial responses, and
+validates decoded H.264 pixels and AAC PCM when native codecs are available.
+These browser engines are not substitutes for Safari/iOS or Android.
 
 | Environment | Path | Evidence |
 | --- | --- | --- |
@@ -19,20 +22,31 @@ engines are not substitutes for Safari/iOS, Android or other real devices.
 | Same | Score/controls | Browser interaction tests covered scaled hit testing, independent highlights, seeking and example playback. |
 | Windows / Edge via Playwright | DmITE example | Browser tests used synthetic PCM for private folder loading, event-aligned recording switches, One Note and score following. The reference configuration and IEEE 1599 XML resolve to 1,032 indexed angle recordings across 43 instruments; real recordings were not exercised. |
 | Same | La Catedral local derivatives | Browser tests decoded the supplied MP3 recordings through Web Audio and the converted H.264 MP4 through native WebCodecs, verified clock-relative frame presentation and tested canvas following and seek. This is not a measurement of speaker-to-display synchronization. |
-| Same | Mediabunny adapter | Unit tests verify MP4/QuickTime-only input, URL and Blob sources, native decoder capability metadata, encoded packet access, abort/disposal, and parse-error cleanup. Actual browser codec and real-media support remain unverified. |
-| Same; Playwright Chromium 159.0.8154.6 | Synthetic media probes | 0.1 s mono PCM WAV decoded (`AudioContext`, 48 kHz output); `VideoDecoder` and `AudioDecoder` are present; AVC baseline and AAC-LC configuration queries returned `supported: true`. No encoded video sample was decoded. |
-| Same; Playwright Firefox 159.0 | Synthetic media probes | 0.1 s mono PCM WAV decoded (`AudioContext`, 48 kHz output); `VideoDecoder` and `AudioDecoder` are present; AVC baseline and AAC-LC configuration queries returned `supported: true`. No encoded video sample was decoded. |
-| Same; Playwright WebKit 27.2 | Synthetic media probes | `AudioContext`, `VideoDecoder` and `AudioDecoder` were unavailable in this Windows Playwright build. This is not a claim about Safari on Apple devices. |
+| Windows / Edge 158, Playwright Chromium 159.0.8154.6 and Firefox 159.0 | Synthetic media probes | A 0.1 s mono WAV decoded at 48 kHz and the output clock advanced. The cross-origin MP4 test observed HTTP ranges, red and blue native H.264 frames, and nonzero native AAC PCM. This is not a claim about arbitrary MP4 files, devices or codecs. |
+| Windows / Playwright WebKit 27.2 | Synthetic media probes | Cross-origin MP4 demuxing and partial responses worked; `AudioContext`, `VideoDecoder` and `AudioDecoder` were unavailable. This is not a claim about Safari on Apple devices. |
 | Windows / Edge 158 and Playwright Firefox 159 | Native streaming PCM | Synthetic 48 kHz mono float PCM actually decoded through AudioDecoder and played through AudioWorklet; native analyser observed a nonzero signal. Tests verify queue backpressure, native-rate seek/preroll, starvation/recovery, pause during pending startup and context ownership. No compressed-audio/mobile claim. |
 | Same | Score UI, IIIF and embedding | Synthetic Image API 2/3 services verify full-image coordinate mapping and click-to-seek with reduced responses. Tests cover pager, zoom, theme variables, event cursor, keyboard navigation, lazy audio loading, isolated custom elements and disposal/reconnect. No real institutional server or screen-reader certification. |
 | All other browsers/devices | All paths | Unverified. Playwright Chromium/Edge does not establish Safari/iOS or Android support. |
-| All browsers/devices | Compressed-file streaming, AAC, WebM video | Unverified. No codec support claim. |
+| All browsers/devices | General compressed-file streaming, WebM video | Unverified. A standalone AAC decoder result does not establish streaming support. |
 
 The streaming fixtures use `pcm-f32`. A local Firefox 159 raw `pcm-s16`
 probe reported configuration support but returned misinterpreted/non-finite
 samples; it is not considered verified streaming support. The transport
 rejects non-finite decoder output. This does not change buffered WAV decoding
 through `decodeAudioData()`, which is tested separately.
+
+## Before deploying to physical devices
+
+Repeat on desktop Safari, iPhone/iPad Safari and Android Chrome over HTTPS.
+Record device, OS, browser build, source formats, sample rate and whether
+audio activates on a tap. Use the [streaming example](../examples/streaming/index.html)
+to test play, pause, seeking to the end, restart, and foreground recovery.
+On your own player, throttle a permitted MP4 source, inspect CORS and `206`
+responses, then seek across two known visual or musical landmarks. On your
+IIIF host, check that `info.json` is readable from the player origin and
+that the same rectangle selects the same event before and after zooming.
+Record failures separately for fetch, decoder configuration, actual decoded
+output and output-clock progression. Keep private materials local.
 
 ## Operational support
 
@@ -63,7 +77,7 @@ The local La Catedral XML is valid, with one `doctype-system-id` warning. The
 DmITE `da00d96` sample is invalid in strict mode because of literal
 `<undefined>` elements (see [DmITE comparison](dmite-comparison.md)).
 
-Compressed-file streaming, real-reader range behavior, synthetic encoded-video decode,
-video-only clocks and rebuffering against a real WebCodecs pipeline have not
-been verified. No numeric performance, memory or synchronization budgets have
-been established.
+The synthetic range test does not establish behavior on every CDN or with
+large files, and no speaker-to-display drift or real-device memory budgets
+have been measured. Video-only clocks are out of scope. The Ubuntu Firefox
+audio-device configuration must still be verified by the hosted CI run.

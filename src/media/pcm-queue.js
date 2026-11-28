@@ -14,14 +14,16 @@ export class PCMQueue {
     this.frames = 0;
     this.position = 0;
     this.end = Infinity;
+    this.finished = false;
     this.lastEnd = 0;
   }
-  /** Drop queued data and seek. @param {number} position @returns {void} */
-  reset(position) {
+  /** Drop queued data and seek. @param {number} position @param {number} [end] Declared end. @returns {void} */
+  reset(position, end = Infinity) {
     this.blocks = [];
     this.frames = 0;
     this.position = position;
-    this.end = Infinity;
+    this.end = end;
+    this.finished = false;
     this.lastEnd = position;
   }
   /** Retain one timestamped block. @param {number} start @param {Float32Array[]} planes @returns {number} Retained frames. */
@@ -41,7 +43,7 @@ export class PCMQueue {
     return frames;
   }
   /** Mark the known media end. @param {number} end @returns {void} */
-  finish(end) { this.end = end; }
+  finish(end) { this.end = end; this.finished = true; }
   /**
    * Fill one render quantum; silence a gap, but freeze on missing data.
    * @param {Float32Array[]} output Planar destination.
@@ -53,7 +55,7 @@ export class PCMQueue {
     for (let frame = 0; frame < (output[0]?.length ?? 0); frame++) {
       if (this.position >= this.end) return { consumed, status: 'ended' };
       const block = this.blocks[0];
-      if (!block && this.end === Infinity) return { consumed, status: 'buffering' };
+      if (!block && !this.finished) return { consumed, status: 'buffering' };
       if (block && this.position >= block.start + block.offset) {
         for (let channel = 0; channel < output.length; channel++) {
           output[channel][frame] = block.planes[channel]?.[block.offset] ?? 0;

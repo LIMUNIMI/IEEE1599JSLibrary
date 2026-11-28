@@ -46,7 +46,7 @@ jobs:
 
   deploy:
     if: github.ref == 'refs/heads/main' && vars.PAGES_DEPLOY_ENABLED == 'true'
-    needs: build
+    needs: [build, browser-tests]
     runs-on: ubuntu-latest
     permissions:
       pages: write
@@ -77,11 +77,23 @@ jobs:
           cache: true
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright-core install --with-deps ${{ matrix.browser }}
+      - name: Enable a headless audio output for Firefox
+        if: matrix.browser == 'firefox'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pulseaudio pulseaudio-utils
+          pulseaudio --start --exit-idle-time=-1
+          pactl load-module module-null-sink sink_name=ieee1599
+          pactl set-default-sink ieee1599
       - run: pnpm run test:browser:matrix
         env:
           BROWSER: ${{ matrix.browser }}
           CAPABILITY_OUTPUT: ${{ runner.temp }}/browser-capabilities-${{ matrix.browser }}.json
       - run: pnpm run test:browser
+        if: matrix.browser == 'chromium'
+        env:
+          BROWSER: chromium
+      - run: pnpm run test:artifacts
         if: matrix.browser == 'chromium'
         env:
           BROWSER: chromium

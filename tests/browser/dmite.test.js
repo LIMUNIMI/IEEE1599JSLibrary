@@ -105,7 +105,9 @@ test('uses private folder files without fetching them and follows the selected p
     for (const [name, body] of assets) {
       const file = join(directory, name);
       await mkdir(dirname(file), { recursive: true });
-      await writeFile(file, body);
+      await writeFile(file, name === 'variationsserieuses.xml'
+        ? Buffer.from(`<?xml version="1.0" encoding="ISO-8859-1"?>${score.replace('Synthetic listening test', 'Synthetic Étude')}`, 'latin1')
+        : body);
     }
     const sent = [];
     page.on('request', (request) => {
@@ -114,7 +116,7 @@ test('uses private folder files without fetching them and follows the selected p
     await page.goto(new URL(`${example}index.html`, harness.base).href);
     await page.locator('#assets').setInputFiles(directory);
     await page.waitForFunction(() => !document.querySelector('#play').disabled);
-    assert.equal(await page.locator('#title').textContent(), 'Synthetic listening test');
+    assert.equal(await page.locator('#title').textContent(), 'Synthetic Étude');
     assert.equal(await page.locator('.instrument').count(), 3);
     const left = page.getByRole('group', { name: 'Left' });
     const center = page.getByRole('group', { name: 'Center' });
@@ -244,7 +246,8 @@ test('reports an unsupported native video codec without interrupting audio playb
     await page.goto(new URL(`${example}index.html`, harness.base).href);
     await page.locator('#assets').setInputFiles(directory);
     await page.waitForFunction(() => document.querySelector('.video-status').textContent.includes('cannot decode video codec'));
-    assert.equal(await page.locator('#play').isDisabled(), false);
+    await page.getByRole('button', { name: 'Play', exact: true }).click();
+    await page.waitForFunction(() => Number(document.querySelector('#time').value.split(' / ')[0]) >= 0.1);
     assert.equal(await page.locator('.video-feed:not([hidden])').count(), 0);
     assert.equal(await page.locator('.compass').first().isVisible(), true);
     assert.equal(await page.locator('audio, video').count(), 0);
@@ -252,5 +255,77 @@ test('reports an unsupported native video codec without interrupting audio playb
   } finally {
     await page.close();
     await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('superseded video primes cannot dispose or draw over a newer instrument feed', async () => {
+  const alternateAudio = paths[0].replace('/Example/', '/Alternate/');
+  const alternateVideo = videoPath.replace('/Example/', '/Alternate/');
+  const videoAssets = new Map(assets);
+  videoAssets.set('params.xml', videoParams.replace('</instruments>', `<instrument name="Alternate"
+    track_prefix="sound" video_suffix=".mp4"><angle value="0" track_suffix="front"/></instrument></instruments>`));
+  videoAssets.set('variationsserieuses.xml', videoScore.replace('</audio>',
+    `${track(alternateAudio, 0.3, 0.7)}${track(alternateVideo, 0.4, 0.9).replace('audio_wav', 'video_quicktime')}</audio>`));
+  videoAssets.set(alternateAudio, assets.get(paths[0]));
+  const delayedMediabunny = fakeMediabunny
+    .replace('constructor() { this.track = new Track(); }', `constructor({ source }) {
+      this.track = new Track();
+      this.track.first = source.url.includes('/Example/');
+    }`)
+    .replace('  async getSample(position) {', `  constructor(track) { this.track = track; }
+  async getSample(position) {
+    if (this.track.first) return new Promise((resolve, reject) => {
+      const oldFrame = sample(position);
+      const draw = oldFrame.draw;
+      oldFrame.draw = (context) => {
+        window.staleVideoDraws = (window.staleVideoDraws ?? 0) + 1;
+        draw(context);
+      };
+      (window.oldVideoPrimes ??= []).push({ resolve: () => resolve(oldFrame), reject });
+    });`);
+  const page = await harness.browser.newPage();
+  page.setDefaultTimeout(5000);
+  try {
+    await page.route(`**${prefix}**`, (route) => {
+      const name = new URL(route.request().url()).pathname.slice(prefix.length);
+      const body = videoAssets.get(name);
+      if (body === undefined) return route.fulfill({ status: 404 });
+      const contentType = name.endsWith('.wav') ? 'audio/wav' : name.endsWith('.svg') ? 'image/svg+xml' : 'application/xml';
+      return route.fulfill({ body, contentType });
+    });
+    await page.route('https://cdn.jsdelivr.net/npm/mediabunny@1.66.1/dist/bundles/mediabunny.mjs',
+      (route) => route.fulfill({ contentType: 'text/javascript', body: delayedMediabunny }));
+    await page.addInitScript(() => {
+      if (!('VideoDecoder' in window)) Object.defineProperty(window, 'VideoDecoder', { value: function VideoDecoder() {} });
+    });
+    await page.goto(new URL(`${example}index.html`, harness.base).href);
+    await page.getByRole('button', { name: 'Load served assets' }).click();
+    await page.waitForFunction(() => window.oldVideoPrimes?.length === 3);
+    const center = page.getByRole('group', { name: 'Center' });
+    const instrument = center.locator('.instrument-select');
+    await instrument.selectOption({ label: 'Alternate' });
+    const feed = center.locator('.video-feed');
+    await feed.waitFor({ state: 'visible' });
+    await page.evaluate(async () => {
+      for (const { reject } of window.oldVideoPrimes.splice(0)) reject(new Error('Superseded video prime'));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    assert.equal(await feed.isVisible(), true);
+    await page.locator('#score').click({ position: { x: 20, y: 20 } });
+    await page.waitForFunction(() => Number(document.querySelectorAll('.video-feed')[1].dataset.timestamp) >= 0.4);
+    assert.equal(await center.locator('.video-status').isVisible(), false);
+
+    await instrument.selectOption({ label: 'Example' });
+    await page.waitForFunction(() => window.oldVideoPrimes.length === 1);
+    await instrument.selectOption({ label: 'Alternate' });
+    await feed.waitFor({ state: 'visible' });
+    const staleDraws = await page.evaluate(async () => {
+      window.oldVideoPrimes.pop().resolve();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      return window.staleVideoDraws ?? 0;
+    });
+    assert.equal(staleDraws, 0);
+  } finally {
+    await page.close();
   }
 });

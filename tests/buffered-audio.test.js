@@ -196,3 +196,16 @@ test('a scheduling failure stops already scheduled peers and reports an error', 
   assert.equal(errors, 1);
   await player.dispose();
 });
+
+test('disposal stops playback and clears the loaded schedule', async () => {
+  const context = new FakeContext();
+  const player = createBufferedAudioPlayer({ context, diagnostics: { console: false } });
+  player.addAudio({ duration: 2 }, { id: 'recording' });
+  player.seek(1);
+  await player.play();
+  await player.dispose();
+  assert.equal(player.state, 'disposed');
+  assert.equal(player.currentTime, 0);
+  assert.equal(player.duration, 0);
+  assert.equal(context.sources[0].stopped, true);
+});

@@ -10,5 +10,5 @@
     "lib": ["ES2022", "ESNext.Disposable", "DOM"],
     "skipLibCheck": true
   },
-  "include": ["src/**/*.js", "examples/**/*.js"]
+  "include": ["src/**/*.js", "examples/**/*.js", "tools/corpus/check.js", "tools/corpus/summary.js"]
 }

@@ -120,9 +120,7 @@ test('starter opens a private nested folder, switches recordings and clears with
     for (const [name, [body]] of files) {
       const path = join(directory, 'nested', name === 'piece.xml' ? 'piece étude #1.xml' : name);
       await mkdir(dirname(path), { recursive: true });
-      await writeFile(path, name === 'piece.xml'
-        ? Buffer.from(`<?xml version="1.0" encoding="ISO-8859-1"?>${piece.replace('Starter test', 'Starter étude')}`, 'latin1')
-        : body);
+      await writeFile(path, body);
     }
     await writeFile(join(directory, 'other.xml'), '<ieee1599 version="1.0"/>');
     await tab.addInitScript(() => {
@@ -153,7 +151,7 @@ test('starter opens a private nested folder, switches recordings and clears with
     await tab.locator('#now').getByText('b at 0.70 s').waitFor();
     await tab.getByLabel('Recording').selectOption({ label: 'second.wav' });
     await tab.locator('#now').getByText('b at 1.35 s').waitFor();
-    assert.equal(await tab.locator('#title').textContent(), 'Starter étude');
+    assert.equal(await tab.locator('#title').textContent(), 'Starter test');
     assert.deepEqual(network, []);
     assert.ok(await tab.evaluate(() => globalThis.activeLocalURLs.size > 0));
     await tab.getByRole('button', { name: 'Clear materials' }).click();

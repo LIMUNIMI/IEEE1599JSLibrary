@@ -219,7 +219,7 @@ test('serialization round-trips data, keeps unspecified defaults implicit and is
       prolog: JSON.stringify([second.prolog, second.epilog, second.doctype.source]) === JSON.stringify([first.prolog, first.epilog, first.doctype.source]),
       noDefaults: !text.includes('beam_before="no"') && !text.includes('timing="null"'),
       special: [specialAgain.general.descendants('related_file')[0].attributes.description, specialAgain.general.descendants('work_number')[0].text],
-      start: text.slice(0, 90)
+      start: text.split('\n').slice(0, 4).join('\n')
     };
   });
   assert.equal(result.same, true);
@@ -227,7 +227,7 @@ test('serialization round-trips data, keeps unspecified defaults implicit and is
   assert.equal(result.prolog, true);
   assert.equal(result.noDefaults, true);
   assert.deepEqual(result.special, ['a"b\tc<d\ne', 'x]]>y']);
-  assert.match(result.start, /^<\?xml version="1.0" encoding="UTF-8"\?>\n<!DOCTYPE ieee1599 SYSTEM/);
+  assert.match(result.start, /^<\?xml version="1\.0" encoding="UTF-8"\?>\n<!-- Synthetic IEEE 1599.* -->\n<\?app-hint mode="test"\?>\n<!DOCTYPE ieee1599 SYSTEM/);
 });
 
 test('strict mode throws every DTD validity error; lenient mode reports them', async () => {

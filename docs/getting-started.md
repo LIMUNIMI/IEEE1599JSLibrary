@@ -39,7 +39,7 @@ server, not from `file://`:
   your own document, score pages and recordings; see
   [Build your own player](build-your-player.md).
 - [Document inspector](../examples/inspector/index.html): inspect a local XML
-  document, findings and event links, without loading recordings.
+  document or the bundled synthetic six-layer sample, without loading recordings.
 - [Embeddable player](../examples/embed/index.html): optional custom element
   for your own IEEE 1599 document, normal/IIIF score images and buffered audio.
 - [Streaming probe](../examples/streaming/index.html): bounded native

@@ -83,8 +83,7 @@ test('a pause during slow audio loading prevents an eventual autoplay and docume
     await page.evaluate(() => {
       window.starting = window.players[0].play();
     });
-    await page.waitForFunction(() => window.players[0].audio !== null);
-    await page.evaluate(() => window.players[0].pause());
+    await page.locator('ieee1599-player').first().getByRole('button', { name: 'Pause', exact: true }).click();
     release();
     assert.equal(await page.evaluate(async () => { await window.starting; return window.players[0].state; }), 'paused');
     await page.route('**/missing.xml', (route) => route.fulfill({ status: 404 }));

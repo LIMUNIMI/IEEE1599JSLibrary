@@ -147,6 +147,45 @@ test('streaming underrun freezes media time, recovers, and a pending start is su
   } finally { await page.close(); }
 });
 
+test('streaming transfers only retained preroll PCM and ends without waiting for reader EOF', { timeout: 20000 }, async (t) => {
+  const page = await harness.browser.newPage();
+  try {
+    await openPage(page);
+    const result = await page.evaluate(async () => {
+      const config = { codec: 'pcm-f32', sampleRate: 48000, numberOfChannels: 1 };
+      if (!globalThis.AudioDecoder || !(await AudioDecoder.isConfigSupported(config)).supported) return null;
+      const { createStreamingAudioPlayer } = await import('/src/index.js');
+      let requestedEOF = false;
+      const player = await createStreamingAudioPlayer({ bufferSeconds: 0.5, track: {
+        duration: 2.2, decoderConfig: config,
+        async *chunks(_time, signal) {
+          for (let n = 0; n < 20; n++) {
+            yield new EncodedAudioChunk({ type: 'key', timestamp: n * 100000, data: new Float32Array(4800) });
+          }
+          yield new EncodedAudioChunk({ type: 'key', timestamp: 2000000, data: new Float32Array(24000) });
+          requestedEOF = true;
+          await new Promise((resolve) => signal.addEventListener('abort', resolve, { once: true }));
+        }
+      } });
+      const port = player.node.port;
+      const post = port.postMessage.bind(port);
+      let frames = 0;
+      port.postMessage = (message, transfers = []) => {
+        if (message.type === 'data') frames += message.planes[0].length;
+        post(message, transfers);
+      };
+      try {
+        await player.seek(1.95);
+        await player.play();
+        await window.until(() => player.state === 'ended', 'declared media end');
+        return { frames, requestedEOF, position: player.currentTime };
+      } finally { await player.dispose(); }
+    });
+    if (!result) { t.skip('Native PCM AudioDecoder is unavailable in this browser build'); return; }
+    assert.deepEqual(result, { frames: 12000, requestedEOF: false, position: 2.2 });
+  } finally { await page.close(); }
+});
+
 test('streaming reports bad sources, context rates and packet budgets instead of silent playback', { timeout: 20000 }, async (t) => {
   const page = await harness.browser.newPage();
   try {

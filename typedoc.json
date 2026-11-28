@@ -5,6 +5,7 @@
   "tsconfig": "tsconfig.json",
   "out": "_site/api",
   "readme": "none",
+  "customCss": "tools/docs/api.css",
   "excludeInternal": true,
   "excludeExternals": true,
   "excludeReferences": true,

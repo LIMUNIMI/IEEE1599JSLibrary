@@ -24,12 +24,18 @@ for (const issue of lax.issues) console.warn(issue.severity, issue.code, issue.p
 | Function | Result | Errors |
 | --- | --- | --- |
 | `parseIEEE1599Document(xml, { strict = true, baseURL })` | `IEEE1599Document` | `DOMParser is not available`; `XML entity declarations are not supported`; `Malformed IEEE 1599 XML or invalid root element`; strict mode only: `IEEE1599ValidationError` with every finding in `error.issues`. |
-| `loadIEEE1599Document(url, { strict, baseURL, signal })` | `Promise<IEEE1599Document>`; `baseURL` defaults to the final response URL | `IEEE 1599 fetch failed: HTTP <status>`, abort errors, and every error of `parseIEEE1599Document`. |
+| `loadIEEE1599Document(url, { strict, baseURL, signal })` | `Promise<IEEE1599Document>`; `baseURL` defaults to the final response URL | HTTP, abort and XML decoding errors, and every error of `parseIEEE1599Document`. |
 | `serializeIEEE1599Document(doc)` | XML text | None. |
 | `createPlayerProjection(doc)` | The `PlayerDocument` subset used by the timeline and score view | The player subset errors documented in `src/xml/parse.js`. |
 
-`parseIEEE1599(xml)` and `loadIEEE1599(url)` are unchanged from the earlier API.
-They are equivalent to a lenient parse followed by `createPlayerProjection()`.
+`parseIEEE1599(xml)` and `loadIEEE1599(url)` perform a lenient parse followed
+by `createPlayerProjection()`. Both URL loaders decode bytes using the BOM,
+then HTTP `Content-Type` charset, then the UTF-16 opening signature or XML
+declaration, defaulting to UTF-8. Encoding labels follow the browser's
+`TextDecoder`; unsupported encodings and malformed bytes throw instead of
+inserting replacement characters. Serve a charset that matches the bytes,
+or omit it and declare the encoding in the XML. The string parsers expect text
+that has already been decoded.
 
 ## Validation scope
 
@@ -196,6 +202,10 @@ rendered and MIDI is not synthesized (see [capabilities](capabilities.md)).
 
 Parsing the output gives an equivalent tree. Whitespace outside the root,
 character-reference spelling and attribute quote style are not preserved.
+Comments and processing instructions retain their order relative to the
+DOCTYPE. The serializer returns text, not encoded bytes. When writing a file,
+encode it to match the preserved XML declaration, or change the declaration
+to match the encoding you write.
 
 ## Examples
 

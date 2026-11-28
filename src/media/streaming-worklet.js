@@ -20,10 +20,11 @@ class StreamingProcessor extends AudioWorkletProcessor {
     this.port.onmessage = ({ data }) => {
       if (data.type === 'reset') {
         this.generation = data.generation;
-        this.queue.reset(data.position);
+        this.queue.reset(data.position, data.end);
         this.running = false;
         this.consumed = 0;
         this.ticks = 0;
+        this.port.postMessage({ type: 'reset', generation: this.generation });
       } else if (data.generation === this.generation) {
         try {
           if (data.type === 'data') this.queue.append(data.start, data.planes);

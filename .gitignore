@@ -4,5 +4,66 @@ node_modules/
 /_site/
 /dist/
 /examples/starter/materials/
+
+# Editors and IDEs
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.code-workspace
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+*.swp
+*.swo
+*~
+\#*\#
+.#*
+
+# Operating systems
+.DS_Store
+._*
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Logs and caches
+*.log
+npm-debug.log*
+pnpm-debug.log*
+.pnpm-store/
+.cache/
+.eslintcache
+*.tsbuildinfo
+coverage/
+.nyc_output/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
+# Python tooling (uv)
+__pycache__/
+*.py[cod]
+.venv/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Temporary files
+*.tmp
+*.bak
+
+# Local IEEE 1599 sample corpus: never commit
 /examples/assets/
 /corpus-report/

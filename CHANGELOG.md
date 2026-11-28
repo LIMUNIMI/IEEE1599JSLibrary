@@ -2,10 +2,49 @@
 
 ## Unreleased
 
-- Add **Try your folder** to the documentation site. The starter player opens
-  local IEEE 1599 XML, score images and indexed audio without uploads, remote
-  media requests or persistent browser storage.
-- Honor supported XML encodings when loading the starter and DmITE documents.
+- Restyle the documentation site, API reference and starter player with the
+  IEEE 1599 visual identity (orange, cream and slate palette, PT Sans when
+  installed locally), with a matching dark scheme and no external font loads.
+
+- Add local folder loading to the general starter player on the documentation
+  site, with XML selection, score following and recording switching. Folder
+  mode uses only selected files, blocks remote references, stores nothing
+  persistently and releases files and image URLs on Clear or navigation.
+  Reuse the DmITE asset resolver and link the player from the site navigation.
+
+- Add `pnpm run test:corpus`, which checks a local, git-ignored corpus of
+  IEEE 1599 documents in a real browser. It checks DTD validity, round-trips,
+  player projection and timelines, and whether referenced images, audio and
+  video exist and can be decoded. It fetches only files named by `file_name`
+  and writes a private report to `corpus-report/`.
+- Normalize graphic event rectangles with swapped corners, with a projection
+  warning, instead of rejecting the whole document.
+- Read `hpos`/`timing` values of `NULL` in any case as absent, and read a
+  `track_indexing` without `timing_type` as seconds, with a warning, as legacy
+  players did.
+- Support repeated sections. A timeline may map one Spine event to several
+  times instead of throwing "Duplicate track event"; exact duplicates are
+  collapsed. `resolve(id, occurrence)` returns `occurrence`, and the new
+  `occurrenceAt(id, time)` lets players and the DmITE example keep the
+  current repeat when switching recordings.
+- The corpus checker names the real format of mislabelled images (for example
+  TIFF data in a `.jpg`) and flags audio too large to decode whole.
+- Document the live GitHub Pages site and ignore `examples/assets/`.
+
+- Fix synchronized seek and refill races, including a seek to the end that
+  previously restarted playback. Clear decoded buffers on disposal and
+  bound streaming PCM transfers after preroll trimming. Streaming no longer
+  waits for reader EOF at the declared duration.
+- Honor legacy XML encodings, preserve comment and instruction order around
+  DOCTYPE, and ignore declaration-like text in comments and CDATA. Normalize
+  references and optional offsets and warn when skipping unsupported score
+  units or track time bases.
+- Protect the current DmITE video feed from stale requests, let users pause
+  embedding startup, and preserve usable keyboard focus at score boundaries
+  without rewriting unchanged highlights.
+- Include the public inspector sample in the generated site. Gate Pages and
+  tagged releases on browser and artifact checks; add synthetic cross-origin
+  MP4 range, H.264 and AAC decode evidence.
 
 - Add experimental bounded single-track native AudioDecoder/AudioWorklet
   streaming, with transferable PCM, backpressure, seek/preroll, starvation

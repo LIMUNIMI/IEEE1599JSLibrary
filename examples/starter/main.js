@@ -116,6 +116,8 @@ async function useRecording(recording, signal) {
   signal = globalThis.AbortSignal.any([signal, request.signal]);
   const previous = session.player && session.timeline
     ? session.timeline.eventsAt(session.player.currentTime)[0] : undefined;
+  const occurrence = previous && session.player && session.timeline
+    ? session.timeline.occurrenceAt(previous, session.player.currentTime) : 0;
   session.controls?.dispose();
   const oldPlayer = session.player;
   session.player = null;
@@ -136,7 +138,7 @@ async function useRecording(recording, signal) {
   }
   session.player = player;
   session.timeline = createTimeline(session.spine, recording.events);
-  if (previous) player.seek(session.timeline.resolve(previous).time);
+  if (previous) player.seek(session.timeline.resolve(previous, occurrence).time);
   session.controls = createTransportControls({ container: element('#controls'), player });
   player.addEventListener('statechange', refresh);
   player.addEventListener('positionchange', refresh);
